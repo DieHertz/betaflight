@@ -382,6 +382,7 @@ static uint8_t ReadByteCrc(void)
 
 static void WriteByte(uint8_t b)
 {
+    while (!serialTxBytesFree(port));
     serialWrite(port, b);
 }
 
@@ -807,8 +808,6 @@ void esc4wayProcess(serialPort_t *mspPort)
 
         i=O_PARAM_LEN;
         do {
-            while (!serialTxBytesFree(port));
-
             WriteByteCrc(*O_PARAM);
             O_PARAM++;
             i--;
