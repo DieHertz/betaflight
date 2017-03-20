@@ -113,6 +113,9 @@ typedef enum {
 #ifdef USE_GYRO_DATA_ANALYSE
     TASK_GYRO_DATA_ANALYSE,
 #endif
+#ifdef CAMERA_CONTROL
+    TASK_CAMCTRL,
+#endif
 
     /* Count of real tasks */
     TASK_COUNT,

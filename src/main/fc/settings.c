@@ -32,6 +32,8 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "drivers/camera_control.h"
+
 #include "sensors/gyro.h"
 
 #include "fc/settings.h"
@@ -215,6 +217,14 @@ static const char * const lookupTableOsdType[] = {
 };
 #endif
 
+#ifdef CAMERA_CONTROL
+static const char * const lookupTableCameraControlMode[] = {
+    "HARDWARE_PWM",
+    "SOFTWARE_PWM",
+    "DAC"
+};
+#endif
+
 static const char * const lookupTableSuperExpoYaw[] = {
     "OFF", "ON", "ALWAYS"
 };
@@ -282,6 +292,9 @@ const lookupTableEntry_t lookupTables[] = {
     { lookupTableCrashRecovery, sizeof(lookupTableCrashRecovery) / sizeof(char *) },
 #ifdef OSD
     { lookupTableOsdType, sizeof(lookupTableOsdType) / sizeof(char *) },
+#endif
+#ifdef CAMERA_CONTROL
+    { lookupTableCameraControlMode, sizeof(lookupTableCameraControlMode) / sizeof(char *) },
 #endif
 };
 
@@ -678,6 +691,13 @@ const clivalue_t valueTable[] = {
 #ifdef USE_MAX7456
     { "displayport_max7456_col_adjust", VAR_INT8| MASTER_VALUE, .config.minmax = { -6, 0 }, PG_DISPLAY_PORT_MSP_CONFIG, offsetof(displayPortProfile_t, colAdjust) },
     { "displayport_max7456_row_adjust", VAR_INT8| MASTER_VALUE, .config.minmax = { -3, 0 }, PG_DISPLAY_PORT_MAX7456_CONFIG, offsetof(displayPortProfile_t, rowAdjust) },
+#endif
+
+// PG_CAMERA_CONTROL_CONFIG
+#ifdef CAMERA_CONTROL
+    { "camera_control_mode", VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CAMERA_CONTROL_MODE }, PG_CAMERA_CONTROL_CONFIG, offsetof(cameraControlConfig_t, mode) },
+    { "camera_control_ref_voltage", VAR_UINT16 | MASTER_VALUE, .config.minmax = { 200, 400 }, PG_CAMERA_CONTROL_CONFIG, offsetof(cameraControlConfig_t, refVoltage) },
+    { "camera_control_key_delay", VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, 500 }, PG_CAMERA_CONTROL_CONFIG, offsetof(cameraControlConfig_t, keyDelayMs) },
 #endif
 };
 

@@ -38,6 +38,7 @@
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
 #include "drivers/vtx_common.h"
+#include "drivers/camera_control.h"
 
 #include "fc/config.h"
 #include "fc/fc_msp.h"
@@ -246,6 +247,17 @@ void osdSlaveTasksInit(void)
 #endif
 
 #ifndef USE_OSD_SLAVE
+
+#ifdef CAMERA_CONTROL
+void taskCameraControl(uint32_t currentTime)
+{
+    if (ARMING_FLAG(ARMED))
+        return;
+
+    cameraControlProcess(currentTime);
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -345,6 +357,9 @@ void fcTasksInit(void)
 #endif
 #ifdef USE_GYRO_DATA_ANALYSE
     setTaskEnabled(TASK_GYRO_DATA_ANALYSE, true);
+#endif
+#ifdef CAMERA_CONTROL
+    setTaskEnabled(TASK_CAMCTRL, true);
 #endif
 }
 #endif
@@ -595,6 +610,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = gyroDataAnalyseUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(100),        // 100 Hz, 10ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef CAMERA_CONTROL
+    [TASK_CAMCTRL] = {
+        .taskName = "CAMCTRL",
+        .taskFunc = taskCameraControl,
+        .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_IDLE
     },
 #endif
 #endif

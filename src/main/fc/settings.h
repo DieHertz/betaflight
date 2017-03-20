@@ -59,6 +59,9 @@ typedef enum {
 #ifdef OSD
     TABLE_OSD,
 #endif
+#ifdef CAMERA_CONTROL
+    TABLE_CAMERA_CONTROL_MODE,
+#endif
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 

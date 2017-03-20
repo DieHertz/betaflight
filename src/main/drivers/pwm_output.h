@@ -150,6 +150,7 @@ void pwmWriteBeeper(bool onoffBeep);
 void pwmToggleBeeper(void);
 void beeperPwmInit(IO_t io, uint16_t frequency);
 #endif
+void pwmOutConfig(pwmOutputPort_t *port, const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value, uint8_t inversion);
 
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);

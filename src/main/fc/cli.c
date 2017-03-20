@@ -72,6 +72,7 @@ extern uint8_t __config_end;
 #include "drivers/system.h"
 #include "drivers/timer.h"
 #include "drivers/vcd.h"
+#include "drivers/camera_control.h"
 
 #include "fc/settings.h"
 #include "fc/cli.h"
@@ -2752,6 +2753,9 @@ const cliResourceValue_t resourceTable[] = {
 #endif
     { OWNER_SERIAL_TX,     PG_SERIAL_PIN_CONFIG, offsetof(serialPinConfig_t, ioTagTx[0]), SERIAL_PORT_MAX_INDEX },
     { OWNER_SERIAL_RX,     PG_SERIAL_PIN_CONFIG, offsetof(serialPinConfig_t, ioTagRx[0]), SERIAL_PORT_MAX_INDEX },
+#ifdef CAMERA_CONTROL
+    { OWNER_CAMERA_CONTROL, PG_CAMERA_CONTROL_CONFIG, offsetof(cameraControlConfig_t, ioTag), 0 },
+#endif
 };
 
 static ioTag_t *getIoTag(const cliResourceValue_t value, uint8_t index)
