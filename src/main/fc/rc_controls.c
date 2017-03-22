@@ -35,6 +35,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/system.h"
+#include "drivers/camera_control.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -308,6 +309,19 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
 #endif
 
+#ifdef CAMERA_CONTROL
+    if (rcSticks == THR_LO + YAW_CE + PIT_LO + ROL_CE) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_ENTER);
+    } else if (rcSticks == THR_CE + YAW_CE + PIT_CE + ROL_LO) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_LEFT);
+    } else if (rcSticks == THR_CE + YAW_CE + PIT_HI + ROL_CE) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_UP);
+    } else if (rcSticks == THR_CE + YAW_CE + PIT_CE + ROL_HI) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_RIGHT);
+    } else if (rcSticks == THR_CE + YAW_CE + PIT_LO + ROL_CE) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_DOWN);
+    }
+#endif
 }
 
 bool isModeActivationConditionPresent(const modeActivationCondition_t *modeActivationConditions, boxId_e modeId)
