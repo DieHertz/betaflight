@@ -45,6 +45,11 @@
 #define ADC_VOLTAGE 3.3f
 #endif
 
+#if !defined(STM32F411xE) && !defined(STM32F7) && !defined(SITL)
+#define CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
+#endif
+
+
 PG_REGISTER_WITH_RESET_TEMPLATE(cameraControlConfig_t, cameraControlConfig, PG_CAMERA_CONTROL_CONFIG, 0);
 
 PG_RESET_TEMPLATE(cameraControlConfig_t, cameraControlConfig,
@@ -58,6 +63,7 @@ static pwmOutputPort_t cameraControlPwm;
 // @todo protect against overflow
 static uint32_t endTimeMillis;
 
+#ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
 void TIM6_DAC_IRQHandler()
 {
     IOHi(cameraControlPwm.io);
@@ -71,6 +77,7 @@ void TIM7_IRQHandler()
 
     TIM7->SR = 0;
 }
+#endif
 
 void cameraControlInit()
 {
@@ -98,6 +105,7 @@ void cameraControlInit()
         *cameraControlPwm.ccr = cameraControlPwm.period;
         cameraControlPwm.enabled = true;
     } else if (CAMERA_CONTROL_MODE_SOFTWARE_PWM == cameraControlConfig()->mode) {
+#ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
         IOConfigGPIO(cameraControlPwm.io, IOCFG_OUT_PP);
         IOHi(cameraControlPwm.io);
 
@@ -116,6 +124,7 @@ void cameraControlInit()
         RCC->APB1ENR |= RCC_APB1Periph_TIM6 | RCC_APB1Periph_TIM7;
         TIM6->PSC = 0;
         TIM7->PSC = 0;
+#endif
     } else if (CAMERA_CONTROL_MODE_DAC == cameraControlConfig()->mode) {
         // @todo not yet implemented
     }
@@ -161,6 +170,7 @@ void cameraControlKeyPress(cameraControlKey_e key)
         *cameraControlPwm.ccr = lrintf(dutyCycle * cameraControlPwm.period);
         endTimeMillis = millis() + cameraControlConfig()->keyDelayMs;
     } else if (CAMERA_CONTROL_MODE_SOFTWARE_PWM == cameraControlConfig()->mode) {
+#ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
         const uint32_t hiTime = lrintf(dutyCycle * cameraControlPwm.period);
 
         if (0 == hiTime) {
@@ -198,6 +208,7 @@ void cameraControlKeyPress(cameraControlKey_e key)
             // Reset to idle state
             IOHi(cameraControlPwm.io);
         }
+#endif
     } else if (CAMERA_CONTROL_MODE_DAC == cameraControlConfig()->mode) {
         // @todo not yet implemented
     }
