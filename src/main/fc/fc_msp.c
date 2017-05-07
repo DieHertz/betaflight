@@ -1752,7 +1752,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
     case MSP_CAMERA_CONTROL:
         {
             const uint8_t key = sbufReadU8(src);
-            cameraControlKeyPress(key);
+            cameraControlKeyPress(key, 0);
         }
         break;
 #endif

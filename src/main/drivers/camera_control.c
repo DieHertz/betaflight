@@ -159,7 +159,7 @@ static float calculatePWMDutyCycle(const cameraControlKey_e key)
     return voltage / ADC_VOLTAGE;
 }
 
-void cameraControlKeyPress(cameraControlKey_e key)
+void cameraControlKeyPress(cameraControlKey_e key, uint32_t holdDurationMs)
 {
     if (key >= CAMERA_CONTROL_KEYS_COUNT)
         return;
@@ -168,14 +168,14 @@ void cameraControlKeyPress(cameraControlKey_e key)
 
     if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {
         *cameraControlPwm.ccr = lrintf(dutyCycle * cameraControlPwm.period);
-        endTimeMillis = millis() + cameraControlConfig()->keyDelayMs;
+        endTimeMillis = millis() + cameraControlConfig()->keyDelayMs + holdDurationMs;
     } else if (CAMERA_CONTROL_MODE_SOFTWARE_PWM == cameraControlConfig()->mode) {
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
         const uint32_t hiTime = lrintf(dutyCycle * cameraControlPwm.period);
 
         if (0 == hiTime) {
             IOLo(cameraControlPwm.io);
-            delay(cameraControlConfig()->keyDelayMs);
+            delay(cameraControlConfig()->keyDelayMs + holdDurationMs);
             IOHi(cameraControlPwm.io);
         } else {
             TIM6->CNT = hiTime;
@@ -194,7 +194,7 @@ void cameraControlKeyPress(cameraControlKey_e key)
             TIM6->DIER = TIM_IT_Update;
             TIM7->DIER = TIM_IT_Update;
 
-            const uint32_t endTime = millis() + cameraControlConfig()->keyDelayMs;
+            const uint32_t endTime = millis() + cameraControlConfig()->keyDelayMs + holdDurationMs;
 
             // Wait to give the camera a chance at registering the key press
             while (millis() < endTime);
