@@ -26,7 +26,6 @@
 #include "system.h"
 #include "math.h"
 #include "nvic.h"
-#include "build/atomic.h"
 
 #if defined(STM32F40_41xxx)
 #define CAMERA_CONTROL_TIMER_MHZ   84
@@ -46,7 +45,13 @@
 #endif
 
 #if !defined(STM32F411xE) && !defined(STM32F7) && !defined(SITL)
+#include "build/atomic.h"
 #define CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
+#endif
+
+#if !defined(SITL)
+#define CAMERA_CONTROL_HARDWARE_PWM_AVAILABLE
+#include "timer.h"
 #endif
 
 
@@ -88,6 +93,7 @@ void cameraControlInit()
     IOInit(cameraControlPwm.io, OWNER_CAMERA_CONTROL, 0);
 
     if (CAMERA_CONTROL_MODE_HARDWARE_PWM == cameraControlConfig()->mode) {
+#ifdef CAMERA_CONTROL_HARDWARE_PWM_AVAILABLE
         const timerHardware_t *timerHardware = timerGetByTag(cameraControlConfig()->ioTag, TIM_USE_ANY);
 
         if (!timerHardware) {
@@ -104,6 +110,7 @@ void cameraControlInit()
 
         *cameraControlPwm.ccr = cameraControlPwm.period;
         cameraControlPwm.enabled = true;
+#endif
     } else if (CAMERA_CONTROL_MODE_SOFTWARE_PWM == cameraControlConfig()->mode) {
 #ifdef CAMERA_CONTROL_SOFTWARE_PWM_AVAILABLE
         IOConfigGPIO(cameraControlPwm.io, IOCFG_OUT_PP);
