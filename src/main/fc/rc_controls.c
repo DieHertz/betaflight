@@ -320,6 +320,8 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         cameraControlKeyPress(CAMERA_CONTROL_KEY_RIGHT, 0);
     } else if (rcSticks == THR_CE + YAW_CE + PIT_LO + ROL_CE) {
         cameraControlKeyPress(CAMERA_CONTROL_KEY_DOWN, 0);
+    } else if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_CE) {
+        cameraControlKeyPress(CAMERA_CONTROL_KEY_UP, 2000);
     }
 #endif
 }
