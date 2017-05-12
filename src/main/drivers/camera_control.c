@@ -161,6 +161,9 @@ static float calculatePWMDutyCycle(const cameraControlKey_e key)
 
 void cameraControlKeyPress(cameraControlKey_e key)
 {
+    if (cameraControlConfig()->ioTag == IO_TAG_NONE || cameraControlPwm.io == IO_NONE)
+        return;
+
     if (key >= CAMERA_CONTROL_KEYS_COUNT)
         return;
 
