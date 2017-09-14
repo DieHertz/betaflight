@@ -17,6 +17,8 @@
 
 #pragma once
 
+#define USE_OPENTCO_DEVICE
+
 #define TARGET_BOARD_IDENTIFIER "OVF3"
 
 

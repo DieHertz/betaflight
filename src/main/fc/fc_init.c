@@ -69,6 +69,7 @@
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
 #include "drivers/camera_control.h"
+#include "drivers/opentco_device.h"
 
 #include "fc/config.h"
 #include "fc/fc_init.h"
@@ -734,6 +735,10 @@ void init(void)
 #ifdef USE_RCSPLIT
     rcSplitInit();
 #endif // USE_RCSPLIT
+
+#ifdef USE_OPENTCO_DEVICE
+    opentcoDeviceInit();
+#endif
 
     systemState |= SYSTEM_STATE_READY;
 }

@@ -42,6 +42,7 @@
 #include "drivers/vtx_common.h"
 #include "drivers/transponder_ir.h"
 #include "drivers/camera_control.h"
+#include "drivers/opentco_device.h"
 
 #include "fc/config.h"
 #include "fc/fc_msp.h"
@@ -256,12 +257,19 @@ void osdSlaveTasksInit(void)
 #ifndef USE_OSD_SLAVE
 
 #ifdef USE_CAMERA_CONTROL
-void taskCameraControl(uint32_t currentTime)
+void taskCameraControl(timeUs_t currentTime)
 {
     if (ARMING_FLAG(ARMED))
         return;
 
     cameraControlProcess(currentTime);
+}
+#endif
+
+#ifdef USE_OPENTCO_DEVICE
+void taskOpentcoDevice(timeUs_t currentTime)
+{
+    opentcoDeviceProcess();
 }
 #endif
 
@@ -627,6 +635,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(5),
         .staticPriority = TASK_PRIORITY_IDLE
     },
+#endif
+
+#ifdef USE_OPENTCO_DEVICE
+    [TASK_OPENTCO_DEVICE] = {
+        .taskName = "OTCO_DEV",
+        .taskFunc = taskOpentcoDevice,
+        .desiredPeriod = TASK_PERIOD_HZ(60),
+        .staticPriority = TASK_PRIORITY_HIGH
+    }
 #endif
 #endif
 };

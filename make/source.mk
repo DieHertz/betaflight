@@ -47,6 +47,8 @@ COMMON_SRC = \
             drivers/transponder_ir_arcitimer.c \
             drivers/transponder_ir_ilap.c \
             drivers/transponder_ir_erlt.c \
+            drivers/opentco.c \
+            drivers/opentco_device.c \
             fc/config.c \
             fc/fc_dispatch.c \
             fc/fc_hardfaults.c \

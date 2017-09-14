@@ -49,6 +49,7 @@ typedef struct cameraControlConfig_s {
 
 PG_DECLARE(cameraControlConfig_t, cameraControlConfig);
 
+// @todo don't init task if no resource is set
 void cameraControlInit();
 
 void cameraControlProcess(uint32_t currentTimeUs);
