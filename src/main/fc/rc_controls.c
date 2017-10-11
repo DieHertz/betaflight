@@ -142,6 +142,12 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
 #endif
 
+#ifdef USE_CAMERA_CONTROL
+    if (IS_RC_MODE_ACTIVE(BOXCAMERA1)) {
+        return;
+    }
+#endif
+
     // checking sticks positions
     uint8_t stTmp = 0;
     for (int i = 0; i < 4; i++) {
@@ -317,22 +323,6 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
     if (rcSticks ==  THR_HI + YAW_HI + PIT_CE + ROL_LO) {
         vtxDecrementChannel();
-    }
-#endif
-
-#ifdef USE_CAMERA_CONTROL
-    if (rcSticks == THR_CE + YAW_HI + PIT_CE + ROL_CE) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_ENTER, 0);
-    } else if (rcSticks == THR_CE + YAW_CE + PIT_CE + ROL_LO) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_LEFT, 0);
-    } else if (rcSticks == THR_CE + YAW_CE + PIT_HI + ROL_CE) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_UP, 0);
-    } else if (rcSticks == THR_CE + YAW_CE + PIT_CE + ROL_HI) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_RIGHT, 0);
-    } else if (rcSticks == THR_CE + YAW_CE + PIT_LO + ROL_CE) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_DOWN, 0);
-    } else if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_CE) {
-        cameraControlKeyPress(CAMERA_CONTROL_KEY_UP, 2000);
     }
 #endif
 }
