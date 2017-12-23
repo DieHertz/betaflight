@@ -23,6 +23,8 @@
 #ifdef USE_TARGET_CONFIG
 
 #include "io/serial.h"
+#include "sensors/gyro.h"
+#include "fc/config.h"
 
 #include "pg/max7456.h"
 #include "pg/pg.h"
@@ -39,6 +41,11 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_VTX_TRAMP;
     serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_RCDEVICE;
     serialConfigMutable()->portConfigs[4].functionMask = FUNCTION_RX_SERIAL;
+#endif
+
+#ifdef KAMIKAZEF4
+    systemConfigMutable()->cpu_overclock = true;
+    gyroConfigMutable()->gyroMovementCalibrationThreshold = 200;
 #endif
 }
 #endif
