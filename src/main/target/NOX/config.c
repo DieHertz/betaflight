@@ -25,6 +25,18 @@
 #include "io/serial.h"
 
 #include "build/debug.h"
+#include "sensors/gyro.h"
+#include "sensors/acceleration.h"
+
+#include "fc/config.h"
+#include "fc/rc_controls.h"
+#include "flight/pid.h"
+#include "flight/mixer.h"
+#include "config/feature.h"
+
+#include "common/filter.h"
+
+#include "rx/rx.h"
 
 void targetConfiguration(void)
 {
@@ -33,5 +45,40 @@ void targetConfiguration(void)
     if (index >= 0) {
         serialConfigMutable()->portConfigs[index].functionMask = FUNCTION_ESC_SENSOR;
     }
+
+#ifdef UNDERGROUNDFPV
+    featureSet(FEATURE_AIRMODE | FEATURE_ANTI_GRAVITY | FEATURE_DYNAMIC_FILTER);
+    gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
+    gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
+    gyroConfigMutable()->gyro_filter_q = 300;
+    gyroConfigMutable()->gyro_filter_r = 80;
+    gyroConfigMutable()->gyroMovementCalibrationThreshold = 128;
+    gyroConfigMutable()->gyro_use_32khz = true;
+    systemConfigMutable()->cpu_overclock = 1;
+    systemConfigMutable()->debug_mode = DEBUG_FFT;
+    accelerometerConfigMutable()->acc_hardware = ACC_NONE;
+    rxConfigMutable()->mincheck = 1020;
+    rxConfigMutable()->rcInterpolation = RC_SMOOTHING_MANUAL;
+    rxConfigMutable()->rcInterpolationChannels = 2;
+    rxConfigMutable()->rcInterpolationInterval = 14;
+    motorConfigMutable()->minthrottle = 1050;
+    motorConfigMutable()->dev.useUnsyncedPwm = 1;
+    motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_MULTISHOT;
+    motorConfigMutable()->dev.motorPwmRate = 32000;
+    rcControlsConfigMutable()->deadband = 5;
+    rcControlsConfigMutable()->yaw_deadband = 5;
+    pidConfigMutable()->pid_process_denom = 2;
+    pidProfilesMutable(0)->dterm_filter_type = FILTER_PT1;
+    pidProfilesMutable(0)->dterm_lpf_hz = 80;
+    pidProfilesMutable(0)->pid[PID_PITCH].P = 61;
+    pidProfilesMutable(0)->pid[PID_PITCH].I = 55;
+    pidProfilesMutable(0)->pid[PID_PITCH].D = 20;
+    pidProfilesMutable(0)->pid[PID_ROLL].P = 46;
+    pidProfilesMutable(0)->pid[PID_ROLL].I = 45;
+    pidProfilesMutable(0)->pid[PID_ROLL].D = 20;
+    pidProfilesMutable(0)->pid[PID_YAW].P = 60;
+    pidProfilesMutable(0)->pid[PID_YAW].I = 55;
+    pidProfilesMutable(0)->pid[PID_YAW].D = 10;
+#endif
 }
 #endif

@@ -17,8 +17,18 @@
 
 #define USE_TARGET_CONFIG
 
+#ifdef KAMIKAZENOX
+#define TARGET_BOARD_IDENTIFIER "KNOX"
+#define UNDERGROUNDFPV
+#else
 #define TARGET_BOARD_IDENTIFIER "NOX1"
+#endif
+
+#ifdef KAMIKAZENOX
+#define USBD_PRODUCT_STRING "Kamikaze Nox"
+#else
 #define USBD_PRODUCT_STRING "NoxF4V1"
+#endif
 
 #define LED0_PIN                PA4
 
