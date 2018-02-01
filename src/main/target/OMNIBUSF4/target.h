@@ -30,6 +30,11 @@
 #elif defined(KAMIKAZEF4)
 #define TARGET_BOARD_IDENTIFIER "KZF4"
 #define OMNIBUSF4SD
+#define UNDERGROUNDFPV
+#elif defined(F4XKAMIKAZEADVANCED)
+#define TARGET_BOARD_IDENTIFIER "F4XK"
+#define OMNIBUSF4BASE
+#define UNDERGROUNDFPV
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #define OMNIBUSF4BASE // For config.c
@@ -45,6 +50,8 @@
 #define USBD_PRODUCT_STRING "ExuavF4Pro"
 #elif defined(KAMIKAZEF4)
 #define USBD_PRODUCT_STRING "KamikazeF4"
+#elif defined(F4XKAMIKAZEADVANCED)
+#define USBD_PRODUCT_STRING "Kamikaze F4X Advanced"
 #else
 #define USBD_PRODUCT_STRING "OmnibusF4"
 #endif
@@ -101,7 +108,7 @@
 // Support for iFlight OMNIBUS F4 V3
 // Has ICM20608 instead of MPU6000
 // OMNIBUSF4SD is linked with both MPU6000 and MPU6500 drivers
-#if defined (OMNIBUSF4SD)
+#if defined (OMNIBUSF4SD) || defined (UNDERGROUNDFPV)
 #define USE_ACC_SPI_MPU6500
 #define USE_GYRO_SPI_MPU6500
 #define MPU6500_CS_PIN          MPU6000_CS_PIN
@@ -110,7 +117,7 @@
 #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
 #endif
 
-#if defined (KAMIKAZEF4)
+#if defined (KAMIKAZEF4) || defined (UNDERGROUNDFPV)
 #define USE_ACC_SPI_ICM20689
 #define USE_GYRO_SPI_ICM20689
 #define ICM20689_CS_PIN          MPU6000_CS_PIN
