@@ -33,7 +33,6 @@
 #define UNDERGROUNDFPV
 #elif defined(F4XKAMIKAZEADVANCED)
 #define TARGET_BOARD_IDENTIFIER "F4XK"
-#define OMNIBUSF4BASE
 #define UNDERGROUNDFPV
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
@@ -69,7 +68,7 @@
 #define ENABLE_DSHOT_DMAR       true
 #endif
 
-#ifdef OMNIBUSF4SD
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
 // These inverter control pins collide with timer channels on CH5 and CH6 pads.
 // Users of these timers/pads must un-map the inverter assignment explicitly.
 #define INVERTER_PIN_UART6      PC8 // Omnibus F4 V3 and later
@@ -94,7 +93,7 @@
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#if defined(OMNIBUSF4SD)
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
 #define GYRO_MPU6000_ALIGN       CW270_DEG
 #define ACC_MPU6000_ALIGN        CW270_DEG
 #elif defined(XRACERF4) || defined(EXUAVF4PRO)
@@ -134,7 +133,7 @@
 //#define MAG_NAZA_ALIGN CW180_DEG_FLIP  // Ditto
 
 #define USE_BARO
-#if defined(OMNIBUSF4SD)
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
 #define USE_BARO_SPI_BMP280
 #define BMP280_SPI_INSTANCE     SPI3
 #define BMP280_CS_PIN           PB3 // v1
@@ -144,7 +143,7 @@
 #define USE_BARO_MS5611
 #define BARO_I2C_INSTANCE       (I2CDEV_2)
 
-#if defined(OMNIBUSF4SD)
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
 #define DEFAULT_BARO_SPI_BMP280
 #else
 #define DEFAULT_BARO_BMP280
@@ -176,6 +175,12 @@
 #define M25P16_SPI_INSTANCE     SPI2
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
+#elif defined(F4XKAMIKAZEADVANCED)
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define M25P16_CS_PIN           SPI2_NSS_PIN
+#define M25P16_SPI_INSTANCE     SPI2
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
 #else
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define M25P16_CS_PIN           SPI3_NSS_PIN
@@ -191,11 +196,21 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 
+#if defined(F4XKAMIKAZEADVANCED)
+#define USE_UART2
+#define UART2_RX_PIN			NONE
+#define UART2_TX_PIN			PA2
+#endif
+
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
-#if defined(EXUAVF4PRO)
+#if defined(F4XKAMIKAZEADVANCED)
+#define USE_UART4
+#define UART4_RX_PIN            PA1
+#define UART4_TX_PIN            NONE
+#elif defined(EXUAVF4PRO)
 #define USE_UART4
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            PA0
@@ -208,14 +223,16 @@
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
 
-#if defined(EXUAVF4PRO)
+#if defined(F4XKAMIKAZEADVANCED)
+#define SERIAL_PORT_COUNT       8 // VCP, USART1, USART2, USART3, USART4, USART6, SOFTSERIAL x 2
+#elif defined(EXUAVF4PRO)
 #define SERIAL_PORT_COUNT       7 // VCP, USART1, USART3, USART4, USART6, SOFTSERIAL x 2
 #else
 #define SERIAL_PORT_COUNT       6 // VCP, USART1, USART3, USART6, SOFTSERIAL x 2
 #endif
 
 #define USE_ESCSERIAL
-#if defined(OMNIBUSF4SD)
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
 #define ESCSERIAL_TIMER_TX_PIN  PB8  // (Hardware=0)
 #else
 #define ESCSERIAL_TIMER_TX_PIN  PB14 // (Hardware=0)
@@ -224,7 +241,7 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#if defined(OMNIBUSF4SD) || defined(LUXF4OSD)
+#if defined(OMNIBUSF4SD) || defined(LUXF4OSD) || defined(F4XKAMIKAZEADVANCED)
 #define USE_SPI_DEVICE_2
 #define SPI2_NSS_PIN            PB12
 #define SPI2_SCK_PIN            PB13
@@ -233,7 +250,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if defined(OMNIBUSF4SD)
+#if defined(OMNIBUSF4SD) || defined(F4XKAMIKAZEADVANCED)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -267,11 +284,13 @@
 
 #define USE_TRANSPONDER
 
+#if !defined(F4XKAMIKAZEADVANCED)
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04
 #define RANGEFINDER_HCSR04_TRIGGER_PIN     PA1
 #define RANGEFINDER_HCSR04_ECHO_PIN        PA8
 #define USE_RANGEFINDER_TF
+#endif
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 
@@ -290,6 +309,9 @@
 #if defined(OMNIBUSF4SD) || defined(EXUAVF4PRO)
 #define USABLE_TIMER_CHANNEL_COUNT 15
 #define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(10) | TIM_N(12) | TIM_N(8) | TIM_N(9))
+#elif defined(F4XKAMIKAZEADVANCED)
+#define USABLE_TIMER_CHANNEL_COUNT 14
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(10))	
 #else
 #define USABLE_TIMER_CHANNEL_COUNT 14
 #define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))
