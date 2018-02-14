@@ -457,6 +457,7 @@ static void SystemInit_ExtMemCtl(void);
 
 uint32_t SystemCoreClock;
 uint32_t pll_p = PLL_P, pll_n = PLL_N, pll_q = PLL_Q;
+#define DEFAULT_SYSTEM_CORE_CLOCK ((PLL_N / PLL_P) * 1000000)
 
 void SystemInit(void)
 {
@@ -502,19 +503,67 @@ void SystemInit(void)
 #endif
 }
 
-void SystemInitOC(void)
+typedef struct pllConfig_s {
+  uint16_t n;
+  uint16_t p;
+  uint16_t q;
+} pllConfig_t;
+
+static const pllConfig_t overclock_levels[] = {
+  { 384, 2, 8 },
+  { 432, 2, 9 },
+  { 480, 2, 10 }
+};
+
+void SystemInitOC(uint32_t overclock_idx)
 {
 #if !defined(STM32F446xxx)
     // XXX Doesn't work for F446 with this configuration.
     // XXX Need to use smaller M to reduce N?
 
     /* PLL setting for overclocking */
-    pll_n = PLL_N_OC;
-    pll_p = PLL_P_OC;
-    pll_q = PLL_Q_OC;
-#endif
+    if (overclock_idx >= sizeof(overclock_levels) / sizeof(*overclock_levels)) {
+      return;
+    }
 
-    SystemInit();
+    const pllConfig_t * const pll = overclock_levels + overclock_idx;
+
+    pll_n = pll->n;
+    pll_p = pll->p;
+    pll_q = pll->q;
+#endif
+}
+
+#define HOT_REBOOT_FLAG_ADDRESS           0x2001FFF8
+#define HOT_REBOOT_FLAG                   (*((uint32_t *) HOT_REBOOT_FLAG_ADDRESS))
+#define HOT_REBOOT_FLAG_OVERCLOCK_OFFSET  0xBABEFAC0
+
+void OverclockRebootIfNecessary(uint32_t overclock_level)
+{
+  // @todo handle default frequency as yet another overclock level to avoid code duplication
+  // Reboot to disable overclock
+  if (0 == overclock_level && SystemCoreClock != DEFAULT_SYSTEM_CORE_CLOCK) {
+    HOT_REBOOT_FLAG = 0x0;        // 128KB SRAM STM32F4XX
+    __disable_irq();
+    NVIC_SystemReset();
+
+    return;
+  }
+
+  const uint32_t overclock_idx = overclock_level - 1;
+
+  if (overclock_idx >= sizeof(overclock_levels) / sizeof(*overclock_levels)) {
+    return;
+  }
+
+  const pllConfig_t * const pll = overclock_levels + overclock_idx;
+
+  // Reboot to adjust overclock frequency
+  if (SystemCoreClock != (pll->n / pll->p) * 1000000) {
+    HOT_REBOOT_FLAG = HOT_REBOOT_FLAG_OVERCLOCK_OFFSET + overclock_idx;
+    __disable_irq();
+    NVIC_SystemReset();
+  }
 }
 
 /**

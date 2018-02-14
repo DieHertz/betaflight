@@ -74,6 +74,9 @@ typedef enum {
     TABLE_GYRO_OVERFLOW_CHECK,
 #endif
     TABLE_RATES_TYPE,
+#if defined(STM32F4) && !defined(DISABLE_OVERCLOCK)
+    TABLE_OVERCLOCK,
+#endif
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 
