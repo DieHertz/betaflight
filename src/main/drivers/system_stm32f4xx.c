@@ -39,13 +39,15 @@ void systemReset(void)
     NVIC_SystemReset();
 }
 
+PERSISTENT uint32_t bootloader_request = 0;
+
 void systemResetToBootloader(void)
 {
     if (mpuResetFn) {
         mpuResetFn();
     }
 
-    *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
+    bootloader_request = 0xDEADBEEF; // 128KB SRAM STM32F4XX
 
     __disable_irq();
     NVIC_SystemReset();
@@ -189,9 +191,8 @@ void systemInit(void)
 void(*bootJump)(void);
 void checkForBootLoaderRequest(void)
 {
-    if (*((uint32_t *)0x2001FFFC) == 0xDEADBEEF) {
-
-        *((uint32_t *)0x2001FFFC) = 0x0;
+    if (bootloader_request == 0xDEADBEEF) {
+        bootloader_request = 0;
 
         __enable_irq();
         __set_MSP(*((uint32_t *)0x1FFF0000));

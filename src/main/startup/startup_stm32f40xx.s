@@ -58,6 +58,9 @@ defined in linker script */
 .word  _ebss
 /* stack used for SystemInit_ExtMemCtl; always internal RAM used */
 
+/* bootloader request, defined in C code */
+.word bootloader_request
+
 /**
  * @brief  This is the code that gets called when the processor first
  *          starts execution following a reset event. Only the absolutely
@@ -80,7 +83,7 @@ Reset_Handler:
   dsb
 
   // Check for bootloader reboot
-  ldr r0, =0x2001FFFC         // mj666
+  ldr r0, =bootloader_request
   ldr r1, =0xDEADBEEF         // mj666
   ldr r2, [r0, #0]            // mj666
   str r0, [r0, #0]            // mj666
@@ -134,22 +137,8 @@ LoopMarkHeapStack:
  orr     r1,r1,#(0xF << 20)
  str     r1,[r0]
 
-  // Check for overclocking request
-  ldr r1, =0x2001FFF8
-  ldr r2, =0xBABEFAC0
-  ldr r0, [r1, #0]
-  str r1, [r1, #0]
-
-  // check that prefix is indeed 0xBABEFAC0
-  eor r0, r2
-  cmp r0, #0x10
-  // overclock if r0 < 16
-  bge CallSystemInit
-  // Call PLL setup function prior to ordinary SystemInit
-  bl  SystemInitOC
 /* Call the clock system intitialization function.*/
 /* Done in system_stm32f4xx.c */
-CallSystemInit:
  bl  SystemInit
 
 /* Call the application's entry point.*/

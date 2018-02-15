@@ -135,6 +135,14 @@ SECTIONS
     __fastram_bss_end__ = .;
   } >FASTRAM
 
+  .persistent_data :
+  {
+    __persistent_data_start__ = .;
+    *(.persistent_data)
+    . = ALIGN(4);
+    __persistent_data_end__ = .;
+  } >RAM
+
   /* User_heap_stack section, used to check that there is enough RAM left */
   _heap_stack_end = ORIGIN(STACKRAM)+LENGTH(STACKRAM) - 8; /* 8 bytes to allow for alignment */
   _heap_stack_begin = _heap_stack_end - _Min_Stack_Size  - _Min_Heap_Size;
