@@ -144,7 +144,7 @@ SECTIONS
     __fastram_bss_end__ = .;
   } >FASTRAM
 
-  .persistent_data :
+  .persistent_data (NOLOAD) :
   {
     __persistent_data_start__ = .;
     *(.persistent_data)

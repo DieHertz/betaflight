@@ -53,23 +53,26 @@ void systemResetToBootloader(void)
     NVIC_SystemReset();
 }
 
-#define SYSTEM_MEMORY __attribute__((section(".system_isr_vector"), aligned(4)))
 typedef void resetHandler_t(void);
 
-// System memory interrupt vector table
-static SYSTEM_MEMORY uint32_t           const volatile  systemStackEnd;
-static SYSTEM_MEMORY resetHandler_t *   const volatile  systemResetHandler;
+typedef struct isrVector_s {
+    uint32_t stackEnd;
+    resetHandler_t * resetHandler;
+} isrVector_t;
 
 void checkForBootLoaderRequest(void)
 {
-    if (bootloaderRequest == 1) {
-        bootloaderRequest = 0;
-
-        __enable_irq();
-        __set_MSP(systemStackEnd);
-        systemResetHandler();
-        while (1);
+    if (bootloaderRequest != 1) {
+        return;
     }
+
+    bootloaderRequest = 0;
+
+    extern isrVector_t system_isr_vector_table_base;
+
+    __set_MSP(system_isr_vector_table_base.stackEnd);
+    system_isr_vector_table_base.resetHandler();
+    while (1);
 }
 
 void enableGPIOPowerUsageAndNoiseReductions(void)
