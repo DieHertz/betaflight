@@ -464,14 +464,14 @@ typedef struct pllConfig_s {
   uint16_t q;
 } pllConfig_t;
 
-static const pllConfig_t overclock_levels[] = {
+static const pllConfig_t overclockLevels[] = {
   { PLL_N, PLL_P, PLL_Q },    // default
   { 384, 2, 8 },              // 192 MHz
   { 432, 2, 9 },              // 216 MHz
   { 480, 2, 10 }              // 240 MHz
 };
 
-static PERSISTENT uint32_t current_overclock_level = 0;
+static PERSISTENT uint32_t currentOverclockLevel = 0;
 
 void SystemInitOC(void)
 {
@@ -480,11 +480,11 @@ void SystemInitOC(void)
     // XXX Need to use smaller M to reduce N?
 
     /* PLL setting for overclocking */
-    if (current_overclock_level >= sizeof(overclock_levels) / sizeof(*overclock_levels)) {
+    if (currentOverclockLevel >= ARRAYLEN(overclockLevels)) {
       return;
     }
 
-    const pllConfig_t * const pll = overclock_levels + current_overclock_level;
+    const pllConfig_t * const pll = overclockLevels + currentOverclockLevel;
 
     pll_n = pll->n;
     pll_p = pll->p;
@@ -492,17 +492,17 @@ void SystemInitOC(void)
 #endif
 }
 
-void OverclockRebootIfNecessary(uint32_t overclock_level)
+void OverclockRebootIfNecessary(uint32_t overclockLevel)
 {
-  if (overclock_level >= sizeof(overclock_levels) / sizeof(*overclock_levels)) {
+  if (overclockLevel >= ARRAYLEN(overclockLevels)) {
     return;
   }
 
-  const pllConfig_t * const pll = overclock_levels + overclock_level;
+  const pllConfig_t * const pll = overclockLevels + overclockLevel;
 
   // Reboot to adjust overclock frequency
   if (SystemCoreClock != (pll->n / pll->p) * 1000000) {
-    current_overclock_level = overclock_level;
+    currentOverclockLevel = overclockLevel;
     __disable_irq();
     NVIC_SystemReset();
   }
