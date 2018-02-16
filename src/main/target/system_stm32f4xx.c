@@ -508,10 +508,46 @@ void OverclockRebootIfNecessary(uint32_t overclockLevel)
   }
 }
 
+void Reset_Handler(void)
+{
+  RCC->AHB1ENR |= RCC_AHB1ENR_CCMDATARAMEN;
+
+  extern void checkForBootLoaderRequest(void);
+  checkForBootLoaderRequest();
+
+  // Initialize static storage duration variables with non-trivial initializers
+  extern uint32_t _sidata;
+  extern uint32_t _sdata;
+  extern uint32_t _edata;
+
+  for (uint32_t *data = &_sdata, *init_data = &_sidata; data != &_edata; ++init_data, ++data) {
+    *data = *init_data;
+  }
+
+  // Zero-initialized static storage duration variables
+  extern uint32_t _sbss;
+  extern uint32_t _ebss;
+
+  for (uint32_t *data = &_sbss; data != &_ebss; ++data) {
+    *data = 0;
+  }
+
+  // Mark stack with 0xA5
+  extern uint32_t _heap_stack_begin;
+  extern uint32_t _heap_stack_end;
+  for (uint32_t *data = &_heap_stack_begin; data != &_heap_stack_end; ++data) {
+    *data = 0xA5A5A5A5;
+  }
+
+  SystemInitOC();
+  SystemInit();
+
+  extern void main(void);
+  main();
+}
+
 void SystemInit(void)
 {
-  SystemInitOC();
-
   /* core clock is simply a mhz of PLL_N / PLL_P */
   SystemCoreClock = (pll_n / pll_p) * 1000000;
 
