@@ -473,7 +473,7 @@ static const pllConfig_t overclockLevels[] = {
 
 static PERSISTENT uint32_t currentOverclockLevel = 0;
 
-void SystemInitOC(void)
+void InitializePLL(void)
 {
 #if !defined(STM32F446xxx)
     // XXX Doesn't work for F446 with this configuration.
@@ -539,11 +539,14 @@ void Reset_Handler(void)
     *data = 0xA5A5A5A5;
   }
 
-  SystemInitOC();
+
+  InitializePLL();
   SystemInit();
 
   extern void main(void);
   main();
+
+  while (1);
 }
 
 void SystemInit(void)
