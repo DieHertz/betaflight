@@ -100,6 +100,7 @@ void biquadRCFIR2FilterInit(biquadFilter_t *filter, float f_cut, float dT);
 
 void fastKalmanInit(fastKalman_t *filter, float q, float r, float p);
 float fastKalmanUpdate(fastKalman_t *filter, float input);
+float fastKalmanUpdate2(fastKalman_t *filter, float input);
 
 // not exactly correct, but very very close and much much faster
 #define filterGetNotchQApprox(centerFreq, cutoff)   ((float)(cutoff * centerFreq) / ((float)(centerFreq - cutoff) * (float)(centerFreq + cutoff)))

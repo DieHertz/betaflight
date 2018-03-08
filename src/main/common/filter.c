@@ -344,3 +344,22 @@ FAST_CODE float fastKalmanUpdate(fastKalman_t *filter, float input)
 
     return filter->x;
 }
+
+FAST_CODE float fastKalmanUpdate2(fastKalman_t *filter, float input)
+{
+    // project the state ahead using acceleration
+    filter->x += (filter->x - filter->lastX);
+
+    // update last state
+    filter->lastX = filter->x;
+
+    // prediction update
+    filter->p = filter->p + filter->q;
+
+    // measurement update
+    filter->k = filter->p / (filter->p + filter->r);
+    filter->x = filter->x * (1 - filter->k) +  filter->k * input;
+    filter->p = (1.0f - filter->k) * filter->p;
+
+    return filter->x;
+}
