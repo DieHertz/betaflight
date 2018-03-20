@@ -71,6 +71,9 @@ void targetConfiguration(void)
     rxConfigMutable()->rcInterpolationInterval = 14;
     motorConfigMutable()->minthrottle = 1050;
     motorConfigMutable()->digitalIdleOffsetValue = 500;
+    motorConfigMutable()->dev.useUnsyncedPwm = 1;
+    motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_MULTISHOT;
+    motorConfigMutable()->dev.motorPwmRate = 32000;
     rcControlsConfigMutable()->deadband = 5;
     rcControlsConfigMutable()->yaw_deadband = 5;
     pidConfigMutable()->pid_process_denom = 2;

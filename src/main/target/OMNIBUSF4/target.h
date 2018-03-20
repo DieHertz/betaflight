@@ -39,6 +39,10 @@
 #define OMNIBUSF4BASE // For config.c
 #endif
 
+#ifdef UNDERGROUNDFPV
+#define USE_GYRO_FAST_KALMAN
+#endif
+
 #if defined(LUXF4OSD)
 #define USBD_PRODUCT_STRING "LuxF4osd"
 #elif defined(DYSF4PRO)

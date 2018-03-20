@@ -26,6 +26,7 @@
 
 #ifdef KAMIKAZENOX
 #define USBD_PRODUCT_STRING "Kamikaze Nox"
+#define USE_GYRO_FAST_KALMAN
 #else
 #define USBD_PRODUCT_STRING "NoxF4V1"
 #endif

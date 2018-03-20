@@ -53,8 +53,6 @@ void targetConfiguration(void)
     gyroConfigMutable()->gyro_filter_q = 300;
     gyroConfigMutable()->gyro_filter_r = 80;
     gyroConfigMutable()->gyroMovementCalibrationThreshold = 128;
-    gyroConfigMutable()->gyro_use_32khz = true;
-    systemConfigMutable()->cpu_overclock = 1;
     systemConfigMutable()->debug_mode = DEBUG_FFT;
     accelerometerConfigMutable()->acc_hardware = ACC_NONE;
     rxConfigMutable()->mincheck = 1020;
@@ -67,7 +65,7 @@ void targetConfiguration(void)
     motorConfigMutable()->dev.motorPwmRate = 32000;
     rcControlsConfigMutable()->deadband = 5;
     rcControlsConfigMutable()->yaw_deadband = 5;
-    pidConfigMutable()->pid_process_denom = 2;
+    pidConfigMutable()->pid_process_denom = 1;
     pidProfilesMutable(0)->dterm_filter_type = FILTER_PT1;
     pidProfilesMutable(0)->dterm_lpf_hz = 80;
     pidProfilesMutable(0)->pid[PID_PITCH].P = 61;
