@@ -133,8 +133,8 @@ typedef struct {
 /**************************** END REGISTER MAPPING  ***************************/
 /******************************************************************************/
 
-#define ACC_I2C_ADDRESS                      0x32
-#define MAG_I2C_ADDRESS                      0x3C
+#define LSM303DLHC_ACC_I2C_ADDRESS           0x32
+#define LSM303DLHC_MAG_I2C_ADDRESS           0x3C
 
 /** @defgroup Acc_Power_Mode_selection
   * @{
