@@ -46,6 +46,10 @@
 #include "hardware_revision.h"
 #endif
 
+#ifndef BARO_I2C_ADDRESS
+#define BARO_I2C_ADDRESS 0
+#endif
+
 baro_t baro;                        // barometer access functions
 
 PG_REGISTER_WITH_RESET_FN(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
@@ -107,7 +111,7 @@ void pgResetFn_barometerConfig(barometerConfig_t *barometerConfig)
     // All I2C devices shares a default config with address = 0 (per device default)
     barometerConfig->baro_bustype = BUSTYPE_I2C;
     barometerConfig->baro_i2c_device = I2C_DEV_TO_CFG(BARO_I2C_INSTANCE);
-    barometerConfig->baro_i2c_address = 0;
+    barometerConfig->baro_i2c_address = BARO_I2C_ADDRESS;
     barometerConfig->baro_spi_device = SPI_DEV_TO_CFG(SPIINVALID);
     barometerConfig->baro_spi_csn = IO_TAG_NONE;
 #else
