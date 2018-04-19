@@ -91,6 +91,7 @@
 #define USE_BARO
 #define USE_BARO_BMP280
 
+#define DEFAULT_BARO_BMP280
 #define BARO_I2C_INSTANCE       (I2CDEV_3)
 #define BARO_I2C_ADDRESS		0x77
 
