@@ -58,8 +58,8 @@
 
 // *************** Gyro & ACC **********************
 #define USE_EXTI
-#define GYRO_1_EXTI_PIN         PC0
-#define GYRO_2_EXTI_PIN         PC1
+#define GYRO_1_EXTI_PIN         PC1
+#define GYRO_2_EXTI_PIN         PC0
 #define MPU_INT_EXTI
 
 #define USE_MPU_DATA_READY_SIGNAL
