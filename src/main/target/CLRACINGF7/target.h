@@ -23,7 +23,7 @@
 
 #define LED0_PIN                PB0
 #define USE_BEEPER
-#define BEEPER                  PB4
+#define BEEPER_PIN                  PB4
 #define BEEPER_INVERTED
 
 //define camera control
@@ -32,7 +32,7 @@
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
-#define ENABLE_DSHOT_DMAR  true
+
 //ICM20689
 #define ICM20689_CS_PIN          PA4
 #define ICM20689_SPI_INSTANCE    SPI1
@@ -71,7 +71,8 @@
 #define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
 #define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
-#define USE_SDCARD
+
+/*#define USE_SDCARD
 #define SDCARD_DETECT_PIN                     PA8
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                       SPI2_NSS_PIN
@@ -81,7 +82,7 @@
 #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 8      // 27MHz
 #define SDCARD_DMA_STREAM_TX_FULL           DMA1_Stream4
 #define SDCARD_DMA_CHANNEL                  0
-
+*/
 #define USE_VCP
 
 #define USE_UART1
@@ -134,6 +135,13 @@
 #define SPI3_MISO_PIN            PC11
 #define SPI3_MOSI_PIN            PB5
 
+#define FLASH_CS_PIN         PB12
+#define FLASH_SPI_INSTANCE   SPI2
+
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+
+
 #define USE_ADC
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
@@ -143,10 +151,10 @@
 #define CURRENT_METER_SCALE_DEFAULT 250                     // 3.3/120A  = 25mv/A
 
 #define BINDPLUG_PIN            PB2
-
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+//#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
-#define SERIALRX_UART           SERIAL_PORT_USART5
+#define SERIALRX_UART                 SERIAL_PORT_UART5
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 #define TARGET_IO_PORTA         0xffff
