@@ -110,6 +110,7 @@ void IOToggle(IO_t io);
 void IOInit(IO_t io, resourceOwner_e owner, uint8_t index);
 void IORelease(IO_t io);  // unimplemented
 resourceOwner_e IOGetOwner(IO_t io);
+void IOSetIndex(IO_t io, uint8_t index);
 IO_t IOGetByTag(ioTag_t tag);
 
 void IOConfigGPIO(IO_t io, ioConfig_t cfg);

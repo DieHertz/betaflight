@@ -100,6 +100,7 @@ bool flashInit(const flashConfig_t *flashConfig)
 #endif
 
     spiPreInitCs(flashConfig->csTag);
+    IOSetIndex(busdev->busdev_u.spi.csnPin, 0x7f);
 
     return false;
 }

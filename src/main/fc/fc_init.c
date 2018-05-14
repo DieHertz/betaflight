@@ -258,6 +258,7 @@ void spiPreInit(void)
 #endif
 #ifdef FLASH_CS_PIN
     spiPreInitCs(IO_TAG(FLASH_CS_PIN));
+    IOSetIndex(IO_TAG(FLASH_CS_PIN), 0x7e);
 #endif
 #if defined(USE_RX_SPI) && !defined(USE_RX_SOFTSPI)
     spiPreInitCs(IO_TAG(RX_NSS_PIN));

@@ -266,6 +266,15 @@ void IORelease(IO_t io)
     ioRec->owner = OWNER_FREE;
 }
 
+void IOSetIndex(IO_t io, uint8_t index)
+{
+    if (!io) {
+        return;
+    }
+
+    IO_Rec(io)->index = index;
+}
+
 resourceOwner_e IOGetOwner(IO_t io)
 {
     if (!io) {
