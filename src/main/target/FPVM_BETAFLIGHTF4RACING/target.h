@@ -25,6 +25,7 @@
 #define USBD_PRODUCT_STRING "FPVM_BETAFLIGHTF4RACING"
 
 #define LED0_PIN                PB2
+#define LED0_INVERTED
 
 #define USE_BEEPER
 #define BEEPER_PIN              PC13
