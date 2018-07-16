@@ -50,13 +50,13 @@
 
 #define GYRO_1_SPI_INSTANCE     SPI3
 #define GYRO_1_CS_PIN           PB12          // Onboard IMU
-#define GYRO_1_ALIGN            CW0_DEG
-#define ACC_1_ALIGN             CW0_DEG
+#define GYRO_1_ALIGN            CW270_DEG_FLIP
+#define ACC_1_ALIGN             CW270_DEG_FLIP
 
 #define GYRO_2_SPI_INSTANCE     SPI3
 #define GYRO_2_CS_PIN           PA8           // External IMU
-#define GYRO_2_ALIGN            CW0_DEG
-#define ACC_2_ALIGN             CW0_DEG
+#define GYRO_2_ALIGN            CW90_DEG
+#define ACC_2_ALIGN             CW90_DEG
 
 #define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_1
 
