@@ -52,12 +52,14 @@ typedef struct laggedMovingAverage_s {
 typedef enum {
     FILTER_PT1 = 0,
     FILTER_BIQUAD,
+    FILTER_LP1
 } lowpassFilterType_e;
 
 typedef enum {
     FILTER_LPF,    // 2nd order Butterworth section
     FILTER_NOTCH,
     FILTER_BPF,
+    FILTER_LPF1
 } biquadFilterType_e;
 
 typedef float (*filterApplyFnPtr)(filter_t *filter, float input);
@@ -65,9 +67,11 @@ typedef float (*filterApplyFnPtr)(filter_t *filter, float input);
 float nullFilterApply(filter_t *filter, float input);
 
 void biquadFilterInitLPF(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
+void biquadFilterInitLPF1(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
 void biquadFilterInit(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 void biquadFilterUpdateLPF(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
+void biquadFilterUpdateLPF1(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
 
 float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
 float biquadFilterApply(biquadFilter_t *filter, float input);

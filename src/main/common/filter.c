@@ -104,6 +104,12 @@ void biquadFilterInitLPF(biquadFilter_t *filter, float filterFreq, uint32_t refr
     biquadFilterInit(filter, filterFreq, refreshRate, BIQUAD_Q, FILTER_LPF);
 }
 
+/* sets up a biquad Filter */
+void biquadFilterInitLPF1(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate)
+{
+    biquadFilterInit(filter, filterFreq, refreshRate, BIQUAD_Q, FILTER_LPF1);
+}
+
 void biquadFilterInit(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType)
 {
     // setup variables
@@ -141,6 +147,16 @@ void biquadFilterInit(biquadFilter_t *filter, float filterFreq, uint32_t refresh
         a1 = -2 * cs;
         a2 = 1 - alpha;
         break;
+    case FILTER_LPF1:
+        // 1nd order Butterworth
+        // described in http://www.ti.com/lit/an/slaa447/slaa447.pdf
+        b0 = sn;
+        b1 = sn;
+        b2 = 0;
+        a0 = sn + cs + 1;
+        a1 = sn - cs - 1;
+        a2 = 0;
+        break;
     }
 
     // precompute the coefficients
@@ -175,6 +191,11 @@ FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint
 FAST_CODE void biquadFilterUpdateLPF(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate)
 {
     biquadFilterUpdate(filter, filterFreq, refreshRate, BIQUAD_Q, FILTER_LPF);
+}
+
+FAST_CODE void biquadFilterUpdateLPF1(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate)
+{
+    biquadFilterUpdate(filter, filterFreq, refreshRate, BIQUAD_Q, FILTER_LPF1);
 }
 
 /* Computes a biquadFilter_t filter on a sample (slightly less precise than df2 but works in dynamic mode) */

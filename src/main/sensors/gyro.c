@@ -684,6 +684,12 @@ void gyroInitLowpassFilterLpf(gyroSensor_t *gyroSensor, int slot, int type, uint
                 biquadFilterInitLPF(&lowpassFilter[axis].biquadFilterState, lpfHz, gyro.targetLooptime);
             }
             break;
+        case FILTER_LP1:
+            *lowpassFilterApplyFn = (filterApplyFnPtr) biquadFilterApply;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                biquadFilterInitLPF1(&lowpassFilter[axis].biquadFilterState, lpfHz, gyro.targetLooptime);
+            }
+            break;
         }
     }
 }
@@ -775,6 +781,17 @@ static void gyroInitFilterDynamic(gyroSensor_t *gyroSensor)
 
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 biquadFilterInit(&gyroSensor->dynFilter[axis].biquadFilterState, dynamicNotchDefaultCenterHz, gyro.targetLooptime, notchQ, FILTER_NOTCH);
+            }
+
+            break;
+        }
+        case FILTER_LP1: {
+            const int dynamicLowpassDefaultCutoffHz = 200;
+
+            gyroSensor->dynFilterApplyFn = (filterApplyFnPtr) biquadFilterApplyDF1;
+
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                biquadFilterInitLPF1(&gyroSensor->dynFilter[axis].biquadFilterState, dynamicLowpassDefaultCutoffHz, gyro.targetLooptime);
             }
 
             break;

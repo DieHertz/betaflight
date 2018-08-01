@@ -294,7 +294,14 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state, 
                 const float notchQ = filterGetNotchQ(state->centerFreq[state->updateAxis], cutoffFreq);
                 biquadFilterUpdate(&dynFilter[state->updateAxis].biquadFilterState, state->centerFreq[state->updateAxis], gyro.targetLooptime, notchQ, FILTER_NOTCH);
 
-            break;
+                break;
+            }
+            case FILTER_LP1: {
+                // calculate cutoffFreq and notch Q, update notch filter
+                const int cutoffFreq = state->centerFreq[state->updateAxis] * dynamicFilterCutoffFactor;
+                biquadFilterUpdateLPF1(&dynFilter[state->updateAxis].biquadFilterState, cutoffFreq, gyro.targetLooptime);
+
+                break;
             }
             }
 
