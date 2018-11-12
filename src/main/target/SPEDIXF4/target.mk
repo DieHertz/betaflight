@@ -1,4 +1,10 @@
+ifeq ($(TARGET), SPEDIXF4)
 F405_TARGETS   += $(TARGET)
+else
+ifeq ($(TARGET), SPEDIXF7)
+F7X2RE_TARGETS += $(TARGET)
+endif
+endif
 FEATURES       = VCP ONBOARDFLASH
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6500.c \

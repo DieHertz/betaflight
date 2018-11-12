@@ -20,12 +20,22 @@
 
 #pragma once
 
+#if defined(SPEDIXF7)
+#define TARGET_BOARD_IDENTIFIER "SPD7"
+#define USBD_PRODUCT_STRING     "SPEDIXF7"
+#else
+#define SPEDIXF4BASE
 #define TARGET_BOARD_IDENTIFIER "SPD4"
 #define USBD_PRODUCT_STRING     "SPEDIXF4"
+#endif
 
 #define USE_TARGET_CONFIG
 
+#if defined(SPEDIXF7)
+#define LED0_PIN                PB2
+#else
 #define LED0_PIN                PC5
+#endif
 
 #define USE_BEEPER
 #define BEEPER_PIN              PC13
@@ -78,7 +88,9 @@
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
+#if defined(SPEDIXF4BASE)
 #define INVERTER_PIN_UART1      PC14
+#endif
 
 #define USE_UART2
 #define UART2_RX_PIN            PA3
@@ -95,7 +107,9 @@
 #define USE_UART5
 #define UART5_RX_PIN            PD2
 #define UART5_TX_PIN            PC12
+#if defined(SPEDIXF4BASE)
 #define INVERTER_PIN_UART5      PC15
+#endif
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
