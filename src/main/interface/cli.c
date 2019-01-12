@@ -314,6 +314,8 @@ typedef enum {
 
 static void cliPrintfva(const char *format, va_list va)
 {
+    if (!cliWriter) return;
+
     tfp_format(cliWriter, cliPutp, format, va);
     bufWriterFlush(cliWriter);
 }
@@ -353,7 +355,7 @@ static bool cliDefaultPrintLinef(uint8_t dumpMask, bool equalsDefault, const cha
     }
 }
 
-static void cliPrintf(const char *format, ...)
+void cliPrintf(const char *format, ...)
 {
     va_list va;
     va_start(va, format);

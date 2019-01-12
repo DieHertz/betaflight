@@ -205,6 +205,7 @@ static const char * const lookupTableSerialRX[] = {
     "SRXL",
     "CUSTOM",
     "FPORT",
+    "SRXLv2",
 };
 #endif
 
