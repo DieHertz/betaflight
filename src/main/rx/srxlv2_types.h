@@ -4,7 +4,7 @@
 
 typedef enum {
     Disabled,
-    ListenOnStartup,
+    ListenForActivity,
     SendHandshake,
     ListenForHandshake,
     Running

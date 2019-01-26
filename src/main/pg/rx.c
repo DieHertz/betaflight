@@ -39,15 +39,15 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
 {
     RESET_CONFIG_2(rxConfig_t, rxConfig,
         .halfDuplex = 0,
-        .serialrx_provider = SERIALRX_PROVIDER,
+        .serialrx_provider = SERIALRX_SRXLv2,
         .serialrx_inverted = 0,
         .spektrum_bind_pin_override_ioTag = IO_TAG(SPEKTRUM_BIND_PIN),
         .spektrum_bind_plug_ioTag = IO_TAG(BINDPLUG_PIN),
         .spektrum_sat_bind = 0,
         .spektrum_sat_bind_autoreset = 1,
         .midrc = RX_MID_USEC,
-        .mincheck = 1050,
-        .maxcheck = 1900,
+        .mincheck = 750,
+        .maxcheck = 2250,
         .rx_min_usec = RX_MIN_USEC,          // any of first 4 channels below this value will trigger rx loss detection
         .rx_max_usec = RX_MAX_USEC,         // any of first 4 channels above this value will trigger rx loss detection
         .rssi_src_frame_errors = false,
@@ -67,6 +67,8 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
         .rc_smoothing_debug_axis = ROLL,     // default to debug logging for the roll axis
         .rc_smoothing_input_type = RC_SMOOTHING_INPUT_BIQUAD,
         .rc_smoothing_derivative_type = RC_SMOOTHING_DERIVATIVE_BIQUAD,
+        .srxlv2_unit_id = 0,
+        .srxlv2_baud_rate = 0,
     );
 
 #ifdef RX_CHANNELS_TAER

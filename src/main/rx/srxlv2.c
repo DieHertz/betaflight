@@ -3,20 +3,38 @@
 #include "common/crc.h"
 #include "common/maths.h"
 
+#include "drivers/exti.h"
+#include "drivers/nvic.h"
+#include "drivers/time.h"
+
 #include "io/serial.h"
 
 #include "rx/srxlv2.h"
 #include "rx/srxlv2_types.h"
 
+#include "drivers/serial.h"
+#include "drivers/serial_uart.h"
+
 #include <string.h>
 
+#ifndef SRXLv2_DEBUG
+#define SRXLv2_DEBUG 0
+#endif
+
+#if SRXLv2_DEBUG
+#warning SRXLv2 debug enabled
 void cliPrintf(const char *format, ...);
+#define DEBUG(format, ...) cliPrintf(format, __VA_ARGS__)
+#else
+#warning SRXLv2 debug disabled
+#define DEBUG(...)
+#endif
 
 #define USE_SERIALRX_SRXLv2
 #ifdef USE_SERIALRX_SRXLv2
 
 #define SRXLv2_MAX_CHANNELS             32
-#define SRXLv2_TIME_BETWEEN_FRAMES_US   11000
+#define SRXLv2_TIME_BETWEEN_FRAMES_US   11000 // 5500 for DSMR
 #define SRXLv2_CHANNEL_SHIFT            5
 #define SRXLv2_CHANNEL_CENTER           0x8000
 
@@ -25,47 +43,67 @@ void cliPrintf(const char *format, ...);
 #define SRXLv2_PORT_OPTIONS             (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_BIDIR)
 #define SRXLv2_PORT_MODE                MODE_RXTX
 
+#define SRXLv2_REPLY_QUIESCENCE         (2 * 10 * 1000000 / SRXLv2_PORT_BAUDRATE_DEFAULT) /*2 * (last_idle_timestamp - last_receive_timestamp)*/
+
 #define SRXLv2_ID                       0xA6
 #define SRXLv2_MAX_PACKET_LENGTH        80
 #define SRXLv2_DEVICE_ID_BROADCAST      0xFF
 
 #define SRXLv2_FRAME_TIMEOUT_US         50000
 
-// @note QUISCENCE_FOR_TWO_CHARACTERS (1 character is 1/baud?)
+#define SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT 50000
+#define SRXLv2_SEND_HANDSHAKE_TIMEOUT 50000
+#define SRXLv2_LISTEN_FOR_HANDSHAKE_TIMEOUT 200000
 
-// @todo set from CLI
-#define SRXLv2_DEVICE_ID                0
+
+static uint8_t unit_id = 0;
+static uint8_t baud_rate = 0;
 
 static srxlv2State state = Disabled;
+static volatile uint32_t timeout_timestamp = 0;
+static volatile uint32_t full_timeout_timestamp = 0;
 
-static uint8_t read_buffer[SRXLv2_MAX_PACKET_LENGTH];
-static uint8_t read_buffer_idx = 0;
+static volatile uint8_t read_buffer[2 * SRXLv2_MAX_PACKET_LENGTH];
+static volatile uint8_t read_buffer_idx = 0;
+static volatile uint8_t read_buffer_read_idx = 0;
 static uint8_t write_buffer[SRXLv2_MAX_PACKET_LENGTH];
 static uint8_t write_buffer_idx = 0;
 
 static serialPort_t *serialPort;
 
 
+static IO_t exti_io;
+static extiCallbackRec_t rec;
+
+static uint32_t min_duration = UINT32_MAX;
+
+
+uint8_t global_result = 0;
 bool srxlv2ProcessHandshake(const srxlv2Header* header, const srxlv2HandshakeSubHeader* handshake)
 {
     if (handshake->destination_device_id == Broadcast) {
-        cliPrintf("broadcast handshake from %x\r\n", handshake->source_device_id);
+        DEBUG("broadcast handshake from %x\r\n", handshake->source_device_id);
 
         if (handshake->baud_supported == 1) {
-            // @todo reset back to default after failure
             serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_HIGH);
+            DEBUG("switching to %d baud\r\n", SRXLv2_PORT_BAUDRATE_HIGH);
         }
 
+        state = Running;
+
+//        EXTIConfig(exti_io, &rec, NVIC_PRIO_CALLBACK, GPIO_MODE_IT_FALLING/*_RISING_FALLING*/);
+//        EXTIEnable(exti_io, true);
+//        state = Disabled;
+
         return true;
     }
 
-    // @note using a range results in FC trying to answer multiple IDs, use just one?
     if (((handshake->destination_device_id >> 4) & 0xF) != FlightController ||
-        (handshake->destination_device_id & 0xF) != SRXLv2_DEVICE_ID) {
+        (handshake->destination_device_id & 0xF) != unit_id) {
         return true;
     }
 
-    cliPrintf("FC handshake from %x\r\n", handshake->source_device_id);
+    DEBUG("FC handshake from %x\r\n", handshake->source_device_id);
 
     srxlv2HandshakeFrame response = {
         .header = *header,
@@ -73,7 +111,7 @@ bool srxlv2ProcessHandshake(const srxlv2Header* header, const srxlv2HandshakeSub
             handshake->destination_device_id,
             handshake->source_device_id,
             /* priority */ 0,
-            /* baud_supported*/ 0,
+            /* baud_supported*/ baud_rate,
             /* info */ 0,
             U_ID_2
         }
@@ -88,25 +126,35 @@ bool srxlv2ProcessHandshake(const srxlv2Header* header, const srxlv2HandshakeSub
     return true;
 }
 
-void srxlv2ProcessChannelData(const srxlv2ChannelDataHeader* channel_data) {
+uint32_t log_timeout = 0;
+void srxlv2ProcessChannelData(const srxlv2ChannelDataHeader* channel_data, rxRuntimeConfig_t *rxRuntimeConfig) {
     if (channel_data->rssi >= 0) {
         const int rssi_percent = channel_data->rssi;
         setRssi(scaleRange(rssi_percent, 0, 100, 0, RSSI_MAX_VALUE), RSSI_SOURCE_RX_PROTOCOL);
     } else {
-        // @note should it be negated?
         const int rssi_dbm = channel_data->rssi;
+        (void) rssi_dbm;
         // @todo come up with a scheme to scale power values to 0-1023 range
         setRssi(RSSI_MAX_VALUE / 2, RSSI_SOURCE_RX_PROTOCOL);
     }
 
-    const uint16_t *frame_channels = (const uint16_t *) (channel_data + 1);
+    if (channel_data->rssi == 0) {
+        global_result = RX_FRAME_FAILSAFE;
+    } else {
+        global_result = RX_FRAME_COMPLETE;
+    }
 
-    uint16_t channels[SRXLv2_MAX_CHANNELS] = { 0 };
+    if (millis() > log_timeout) {
+       DEBUG("channel data: rssi %d, frame_losses %d, mask %d\r\n", channel_data->rssi, channel_data->frame_losses, channel_data->channel_mask.u32);
+       log_timeout = millis() + 500;
+    }
+
+    const uint16_t *frame_channels = (const uint16_t *) (channel_data + 1);
 
     if (channel_data->channel_mask.u8.channels_0_7) {
         for (size_t i = 0; i < 8; ++i) {
             if (channel_data->channel_mask.u8.channels_0_7 >> i & 1) {
-                channels[i] = *frame_channels++;
+                rxRuntimeConfig->channelData[i] = *frame_channels++;
             }
         }
     }
@@ -114,7 +162,7 @@ void srxlv2ProcessChannelData(const srxlv2ChannelDataHeader* channel_data) {
     if (channel_data->channel_mask.u8.channels_8_15) {
         for (size_t i = 0; i < 8; ++i) {
             if (channel_data->channel_mask.u8.channels_8_15 >> i & 1) {
-                channels[8 + i] = *frame_channels++;
+                rxRuntimeConfig->channelData[8 + i] = *frame_channels++;
             }
         }
     }
@@ -122,7 +170,7 @@ void srxlv2ProcessChannelData(const srxlv2ChannelDataHeader* channel_data) {
     if (channel_data->channel_mask.u8.channels_16_23) {
         for (size_t i = 0; i < 8; ++i) {
             if (channel_data->channel_mask.u8.channels_16_23 >> i & 1) {
-                channels[16 + i] = *frame_channels++;
+                rxRuntimeConfig->channelData[16 + i] = *frame_channels++;
             }
         }
     }
@@ -130,119 +178,288 @@ void srxlv2ProcessChannelData(const srxlv2ChannelDataHeader* channel_data) {
     if (channel_data->channel_mask.u8.channels_24_31) {
         for (size_t i = 0; i < 8; ++i) {
             if (channel_data->channel_mask.u8.channels_24_31 >> i & 1) {
-                channels[24 + i] = *frame_channels++;
+                rxRuntimeConfig->channelData[24 + i] = *frame_channels++;
             }
         }
     }
 
-    //cliPrintf("channel data: %d %d %x\r\n",
-        //channel_data_header->rssi, channel_data_header->frame_losses, channel_data_header->channel_mask.u32);
+    // DEBUG("channel data: %d %d %x\r\n",
+    //     channel_data_header->rssi, channel_data_header->frame_losses, channel_data_header->channel_mask.u32);
 }
 
-bool srxlv2ProcessControlData(const srxlv2ControlDataSubHeader* control_data)
+bool srxlv2ProcessControlData(const srxlv2ControlDataSubHeader* control_data, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     if (control_data->reply_id) {
-        cliPrintf("command: %x reply_id: %x\r\n", control_data->command, control_data->reply_id);
+        // DEBUG("command: %x reply_id: %x\r\n", control_data->command, control_data->reply_id);
     }
 
     switch (control_data->command) {
         case ChannelData: {
-            srxlv2ProcessChannelData((const srxlv2ChannelDataHeader *) (control_data + 1));
+            srxlv2ProcessChannelData((const srxlv2ChannelDataHeader *) (control_data + 1), rxRuntimeConfig);
         } break;
         
         case FailsafeChannelData: {
-            srxlv2ProcessChannelData((const srxlv2ChannelDataHeader *) (control_data + 1));
+            srxlv2ProcessChannelData((const srxlv2ChannelDataHeader *) (control_data + 1), rxRuntimeConfig);
             setRssiDirect(0, RSSI_SOURCE_RX_PROTOCOL);
-            cliPrintf("fs channel data\r\n");
+            // DEBUG("fs channel data\r\n");
         } break;
 
         case VTXData: {
-            cliPrintf("vtx data\r\n");
+            // DEBUG("vtx data\r\n");
         } break;
     }
 
     return true;
 }
 
-bool srxlv2ProcessPacket(const srxlv2Header* header)
+bool srxlv2ProcessPacket(const srxlv2Header* header, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     switch (header->packet_type) {
     case Handshake: return srxlv2ProcessHandshake(header, (const srxlv2HandshakeSubHeader *) (header + 1)); 
-    case ControlData: return srxlv2ProcessControlData((const srxlv2ControlDataSubHeader *) (header + 1));
+    case ControlData: return srxlv2ProcessControlData((const srxlv2ControlDataSubHeader *) (header + 1), rxRuntimeConfig);
     default: break;
     }
 
     return false;
 }
 
-void srxlv2Process()
+// @note assumes packet is fully there
+void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    const srxlv2Header* header = (const srxlv2Header *) read_buffer;
+    union {
+        uint8_t local_buffer[SRXLv2_MAX_PACKET_LENGTH];
+        srxlv2Header header;
+    } anonymous;
 
-    if (srxlv2ProcessPacket(header)) {
-        read_buffer_idx -= header->length;
-        memmove(read_buffer, read_buffer + header->length, read_buffer_idx);
+    uint32_t bytes_copied = 0;
+    while (bytes_copied < sizeof(srxlv2Header)) {
+        anonymous.local_buffer[bytes_copied++] = read_buffer[read_buffer_read_idx++];
+
+        if (read_buffer_read_idx == sizeof(read_buffer)) {
+            read_buffer_read_idx = 0;
+        }
+    }
+
+    while (bytes_copied < anonymous.header.length) {
+        anonymous.local_buffer[bytes_copied++] = read_buffer[read_buffer_read_idx++];
+
+        if (read_buffer_read_idx == sizeof(read_buffer)) {
+            read_buffer_read_idx = 0;
+        }
+    }
+
+    const uint16_t calculated_crc = crc16_ccitt_update(0, anonymous.local_buffer, anonymous.header.length - 2);
+    const uint16_t received_crc =
+        (anonymous.local_buffer[anonymous.header.length - 2] << 8) |
+        (anonymous.local_buffer[anonymous.header.length - 1]);
+
+    if (calculated_crc != received_crc) {
+        global_result = RX_FRAME_DROPPED;
+        DEBUG("crc mismatch %x vs %x\r\n", calculated_crc, received_crc);
+        return;
+    }
+
+    if (srxlv2ProcessPacket(&anonymous.header, rxRuntimeConfig)) {
         return;
     }
 
     // @todo reset
-    cliPrintf("could not parse packet: %x\r\n", header->packet_type);
-    read_buffer_idx = 0;
+    DEBUG("could not parse packet: %x\r\n", anonymous.header.packet_type);
+    global_result = RX_FRAME_DROPPED;
 }
 
+uint32_t last_receive_timestamp = 0;
 static void srxlv2DataReceive(uint16_t character, void *data)
 {
     UNUSED(data);
 
-    if (0 == read_buffer_idx && character != SRXLv2_ID) {
+    last_receive_timestamp = microsISR();
+
+    // circular buffer depleted and waiting for sync character
+    if (read_buffer_read_idx == read_buffer_idx && character != SRXLv2_ID) {
         return;
     }
 
-    read_buffer[read_buffer_idx++] = character;
-
-    if (read_buffer_idx >= sizeof(srxlv2Header)) {
-        const srxlv2Header* header = (const srxlv2Header *) read_buffer;
-
-        if (header->id != SRXLv2_ID) {
-            // @todo reset
-            cliPrintf("invalid header id: %x\r\n", header->id);
-            read_buffer_idx = 0;
-            return /*RX_FRAME_DROPPED*/;
-        }
-
-        if (read_buffer_idx < header->length) {
-            return /*RX_FRAME_PENDING*/;
-        }
-
-        srxlv2Process();
-
-        // return RX_FRAME_COMPLETE if ControlData::ChannelData
-        // return RX_FRAME_FAILSAFE if ControlData::FailsafeChannelData
-        // return RX_FRAME_PROCESSING_REQUIRED if requires as answer
-    }
+    read_buffer[read_buffer_idx] = character;
+    read_buffer_idx = (read_buffer_idx + 1) % sizeof(read_buffer);
 }
 
+static volatile uint32_t last_idle_timestamp = 0;
+
+static void srxlv2Idle()
+{
+    last_idle_timestamp = microsISR();
+}
+
+uint32_t autobaud_timeout = 0;
 static uint8_t srxlv2FrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxRuntimeConfig);
 
-    // @note coordinate "clear to send"
-    if (write_buffer_idx) {
-        return RX_FRAME_PROCESSING_REQUIRED;
+    /*if (micros() >= autobaud_timeout) {
+        if (min_duration < UINT32_MAX) {
+            min_duration += 1;
+            DEBUG("duration %d.%d, baud %d\r\n", min_duration / 10, min_duration % 10, 10000000 / min_duration);
+            min_duration = UINT32_MAX;
+        }
+
+        DEBUG("state is %d\r\n", state);
+
+        autobaud_timeout = micros() + SRXLv2_FRAME_TIMEOUT_US;
+    }*/
+
+    global_result = RX_FRAME_PENDING;
+
+    const uint32_t bytes_available =
+        read_buffer_read_idx > read_buffer_idx
+            ? read_buffer_idx + (uint8_t) sizeof(read_buffer) - read_buffer_read_idx
+            : read_buffer_idx - read_buffer_read_idx;
+
+    if (bytes_available >= sizeof(srxlv2Header)) {
+        union {
+            uint8_t local_buffer[sizeof(srxlv2Header)];
+            srxlv2Header header;
+        } anonymous;
+
+        uint32_t bytes_copied = 0;
+        uint32_t index = read_buffer_read_idx;
+        while (bytes_copied < sizeof(srxlv2Header)) {
+            anonymous.local_buffer[bytes_copied++] = read_buffer[index++];
+
+            if (index == sizeof(read_buffer)) {
+                index = 0;
+            }
+        }
+
+        if (anonymous.header.id != SRXLv2_ID) {
+            // @todo reset
+            DEBUG("invalid header id: %x\r\n", anonymous.header.id);
+            // @todo maybe scan data for SRXLv2_ID
+            read_buffer_read_idx = read_buffer_idx;
+            return RX_FRAME_DROPPED;
+        }
+
+        if (bytes_available < anonymous.header.length) {
+            return RX_FRAME_PENDING;
+        }
+
+        srxlv2Process(rxRuntimeConfig);
     }
 
-    return RX_FRAME_PENDING;
+    uint8_t result = global_result;
+
+    const uint32_t now = micros();
+
+    switch (state) {
+    case Disabled: break;
+
+    case ListenForActivity: {
+        // activity detected
+        if (last_receive_timestamp != 0) {
+            // as ListenForActivity is done at default baud-rate, we don't need to change anything
+            // @todo if there were non-handshake packets - go to running,
+            // if there were - go to either Send Handshake or Listen For Handshake
+            state = Running;
+        } else if (now >= timeout_timestamp) {
+            // @todo if there was activity - detect baudrate and ListenForHandshake
+            /*
+                if (baud_rate == 1) {
+                    serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_HIGH);
+                }
+            */
+            // else
+            if (unit_id == 0) {
+                state = SendHandshake;
+                timeout_timestamp = now + SRXLv2_SEND_HANDSHAKE_TIMEOUT;
+                full_timeout_timestamp = now + SRXLv2_LISTEN_FOR_HANDSHAKE_TIMEOUT;
+            } else {
+                state = ListenForHandshake;
+                timeout_timestamp = now + SRXLv2_LISTEN_FOR_HANDSHAKE_TIMEOUT;
+            }
+        }
+    } break;
+
+    case SendHandshake: {
+        if (now >= timeout_timestamp) {
+            // @todo set another timeout for 50ms tries
+            // fill write buffer with handshake frame
+            result |= RX_FRAME_PROCESSING_REQUIRED;
+        }
+        // else if (handshake_received) {
+        //  set baud rate accordingly
+        //  state = Running
+        // }
+
+        if (now >= full_timeout_timestamp) {
+            serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_DEFAULT);
+            //DEBUG("case SendHandshake: switching to %d baud\r\n", SRXLv2_PORT_BAUDRATE_DEFAULT);
+            timeout_timestamp = now + SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT;
+            result = (result & ~RX_FRAME_PENDING) | RX_FRAME_FAILSAFE;
+
+            state = ListenForActivity;
+            last_receive_timestamp = 0;
+        }
+    } break;
+
+    case ListenForHandshake: {
+        // if (handshake_Received) {
+        //     set baud rate accordingly
+        //     state = Running
+        // }
+        if (now >= timeout_timestamp)  {
+            serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_DEFAULT);
+            //DEBUG("case ListenForHandshake: switching to %d baud\r\n", SRXLv2_PORT_BAUDRATE_DEFAULT);
+            timeout_timestamp = now + SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT;
+            result = (result & ~RX_FRAME_PENDING) | RX_FRAME_FAILSAFE;
+
+            state = ListenForActivity;
+            last_receive_timestamp = 0;
+        }
+    } break;
+
+    case Running: {
+        // frame timed out, reset state
+        if (last_receive_timestamp < now && now - last_receive_timestamp >= SRXLv2_FRAME_TIMEOUT_US) {
+            serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_DEFAULT);
+            //DEBUG("case Running: switching to %d baud: %d %d\r\n", SRXLv2_PORT_BAUDRATE_DEFAULT, now, last_receive_timestamp);
+            timeout_timestamp = now + SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT;
+            result = (result & ~RX_FRAME_PENDING) | RX_FRAME_FAILSAFE;
+
+            state = ListenForActivity;
+            last_receive_timestamp = 0;
+        }
+    } break;
+    };
+
+    if (write_buffer_idx) {
+        result |= RX_FRAME_PROCESSING_REQUIRED;
+    }
+
+    return result;
 }
 
 static bool srxlv2ProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxRuntimeConfig);
 
-    if (write_buffer_idx) {
-        cliPrintf("sending response bytes %d\r\n", write_buffer_idx);
+    if (write_buffer_idx == 0) {
+        return true;
+    }
 
-        serialWriteBuf(serialPort, write_buffer, write_buffer_idx);
-        write_buffer_idx = 0;
+    const uint32_t now = micros();
+
+    if (last_idle_timestamp > last_receive_timestamp) {
+        // time sufficient for at least 2 characters has passed
+        if (now - last_receive_timestamp > SRXLv2_REPLY_QUIESCENCE) {
+            DEBUG("clear to send response bytes %d, %d %d %d\r\n", write_buffer_idx, now, last_receive_timestamp, last_idle_timestamp);
+
+            serialWriteBuf(serialPort, write_buffer, write_buffer_idx);
+            write_buffer_idx = 0;
+        } else {
+            DEBUG("not enough time to send 2 characters passed yet, %d us since last receive, %d required\r\n", now - last_receive_timestamp, SRXLv2_REPLY_QUIESCENCE);
+        }
+    } else {
+        // DEBUG("still receiving a frame, %d %d\r\n", last_idle_timestamp, last_receive_timestamp);
     }
 
     return true;
@@ -264,6 +481,41 @@ void srxlv2RxWriteData(const void *data, int len)
     write_buffer_idx = len;
 }
 
+
+static uint32_t last_exti = 0;
+static uint8_t edges_counter = 0;
+void srxlv2Exti(extiCallbackRec_t *self)
+{
+    UNUSED(self);
+
+    const uint32_t now = microsISR();
+
+    // tries to look for 0x6A start bytes
+    if (last_exti == 0) {
+        // initialization
+        last_exti = now;
+    } else if (now - last_exti > 1000) {
+        // transmission commencing after period of quiescence
+        last_exti = now;
+        edges_counter = 3;
+    } else if (edges_counter > 1) {
+        // not enough falling edges collected
+        --edges_counter;
+    } else if (edges_counter > 0) {
+        // last falling edge, store duration
+        const uint32_t duration = now - last_exti;
+        if (duration < min_duration) {
+            min_duration = duration;
+        }
+
+        last_exti = now;
+        --edges_counter;
+    } else {
+        // do nothing
+        last_exti = now;
+    }
+}
+
 bool srxlv2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     static uint16_t channelData[SRXLv2_MAX_CHANNELS];
@@ -271,7 +523,8 @@ bool srxlv2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         channelData[i] = SRXLv2_CHANNEL_CENTER;
     }
 
-    state = ListenForHandshake;
+    unit_id = rxConfig->srxlv2_unit_id;
+    baud_rate = rxConfig->srxlv2_baud_rate;
 
     rxRuntimeConfig->channelData = channelData;
     rxRuntimeConfig->channelCount = SRXLv2_MAX_CHANNELS;
@@ -293,15 +546,38 @@ bool srxlv2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     if (rxConfig->halfDuplex) {
         options |= SERIAL_BIDIR;
     }
+    if (rxConfig->halfDuplex == 2) {
+        options |= SERIAL_SWAP_RX_TX;
+    }
+
+    exti_io = IOGetByTag(IO_TAG(PB10));
+    EXTIHandlerInit(&rec, srxlv2Exti);
 
     serialPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, srxlv2DataReceive,
         NULL, SRXLv2_PORT_BAUDRATE_DEFAULT, SRXLv2_PORT_MODE, options);
 
     if (serialPort) {
+        serialPort->idleCallback = srxlv2Idle;
+
+        state = ListenForActivity;
+        timeout_timestamp = micros() + SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT;
+
         if (rssiSource == RSSI_SOURCE_NONE) {
             rssiSource = RSSI_SOURCE_RX_PROTOCOL;
         }
     }
+
+    /* handshake protocol
+    1. listen for 50ms for serial activity and go to State::Running if found, autobaud may be necessary
+    2. if srxlv2_unit_id = 0:
+            send a Handshake with destination_device_id = 0 every 50ms for at least 200ms
+        else:
+            listen for Handshake for at least 200ms
+    3.  respond to Handshake as currently implemented in process if rePst received
+    4.  respond to broadcast Handshake
+    */
+
+    // if 50ms with not activity, go to default baudrate and to step 1
 
     return serialPort;
 }

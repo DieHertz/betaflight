@@ -49,6 +49,7 @@ typedef enum {
     SERIAL_BIDIR_OD        = 0 << 4,
     SERIAL_BIDIR_PP        = 1 << 4,
     SERIAL_BIDIR_NOPULL    = 1 << 5, // disable pulls in BIDIR RX mode
+    SERIAL_SWAP_RX_TX      = 1 << 6, // swap TX and RX pins, not supported on F4
 } portOptions_e;
 
 // Define known line control states which may be passed up by underlying serial driver callback
@@ -56,6 +57,7 @@ typedef enum {
 #define CTRL_LINE_STATE_RTS (1 << 1)
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app
+typedef void (*serialIdleCallbackPtr)();
 
 typedef struct serialPort_s {
 
@@ -77,6 +79,8 @@ typedef struct serialPort_s {
 
     serialReceiveCallbackPtr rxCallback;
     void *rxCallbackData;
+
+    serialIdleCallbackPtr idleCallback;
 
     uint8_t identifier;
 } serialPort_t;

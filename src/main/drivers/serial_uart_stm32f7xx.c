@@ -310,6 +310,14 @@ void uartIrqHandler(uartPort_t *s)
             handleUsartTxDma(s);
         }
     }
+
+    if (__HAL_UART_GET_IT(huart, UART_IT_IDLE)) {
+        if (s->port.idleCallback) {
+            s->port.idleCallback();
+        }
+
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
+    }
 }
 
 static void handleUsartTxDma(uartPort_t *s)
@@ -371,8 +379,21 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_e mode, 
 
     s->Handle.Instance = hardware->reg;
 
+    // RCC for all used peripherals is probably already enabled on F7
+    RCC_ClockCmd(hardware->rcc, ENABLE);
+    LL_USART_Disable(s->USARTx);
+
     IO_t txIO = IOGetByTag(uartdev->tx);
     IO_t rxIO = IOGetByTag(uartdev->rx);
+
+    const bool swapPins = options & SERIAL_SWAP_RX_TX;
+    if (swapPins) {
+        swap(txIO, rxIO);
+        SET_BIT(USARTx->CR2, USART_CR2_SWAP);
+        // @todo ensure USART is disabled
+    } else {
+        RESET_BIT(USARTx->CR2, USART_CR2_SWAP);
+    }
 
     if ((options & SERIAL_BIDIR) && txIO) {
         ioConfig_t ioCfg = IO_CONFIG(

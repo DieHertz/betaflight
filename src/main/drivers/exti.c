@@ -93,7 +93,7 @@ void EXTIHandlerInit(extiCallbackRec_t *self, extiHandlerCallback *fn)
 }
 
 #if defined(STM32F7)
-void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t config)
+void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, uint32_t config)
 {
     (void)config;
     int chIdx;
@@ -105,7 +105,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t conf
 
     GPIO_InitTypeDef init = {
         .Pin = IO_Pin(io),
-        .Mode = GPIO_MODE_IT_RISING,
+        .Mode = config,
         .Speed = GPIO_SPEED_FREQ_LOW,
         .Pull = GPIO_NOPULL,
     };

@@ -35,7 +35,7 @@ void EXTIInit(void);
 
 void EXTIHandlerInit(extiCallbackRec_t *cb, extiHandlerCallback *fn);
 #if defined(STM32F7)
-void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t config);
+void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, uint32_t config);
 #else
 void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_TypeDef trigger);
 #endif
