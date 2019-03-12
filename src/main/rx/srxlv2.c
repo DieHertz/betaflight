@@ -246,12 +246,22 @@ void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
         }
     }
 
+    if (anonymous.header.id != SRXLv2_ID) {
+      global_result = RX_FRAME_DROPPED;
+      return;
+    }
+
     while (bytes_copied < anonymous.header.length) {
         anonymous.local_buffer[bytes_copied++] = read_buffer[read_buffer_read_idx++];
 
         if (read_buffer_read_idx == sizeof(read_buffer)) {
             read_buffer_read_idx = 0;
         }
+    }
+
+    if (anonymous.header.id != SRXLv2_ID) {
+      global_result = RX_FRAME_DROPPED;
+      return;
     }
 
     const uint16_t calculated_crc = crc16_ccitt_update(0, anonymous.local_buffer, anonymous.header.length - 2);
