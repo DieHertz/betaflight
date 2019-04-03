@@ -629,4 +629,27 @@ void srxlv2FinalizeFrame(sbuf_t *dst)
   telemetry_requested = false;
 }
 
+void srxlv2Bind(void)
+{
+    const size_t length = sizeof(srxlv2BindInfoFrame);
+
+    srxlv2BindInfoFrame bind = {
+        .header = {
+            .id = SRXLv2_ID,
+            .packet_type = BindInfo,
+            .length = length
+        },
+        .payload = {
+            .request = EnterBindMode,
+            .device_id = bus_master_device_id,
+        }
+    };
+
+    const uint16_t crc = crc16_ccitt_update(0, &bind, length - 2);
+    bind.crc_high = ((uint8_t *) &crc)[1];
+    bind.crc_low = ((uint8_t *) &crc)[0];
+
+    srxlv2RxWriteData(&bind, length);
+}
+
 #endif

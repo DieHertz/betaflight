@@ -84,4 +84,39 @@ typedef struct {
     uint8_t crc_low;
 } PACKED srxlv2HandshakeFrame;
 
+typedef enum {
+    EnterBindMode = 0xEB,
+    RequestBindStatus = 0xB5,
+    BoundDataReport = 0xDB,
+    SetBindInfo = 0x5B,
+} srxlv2BindRequest;
+
+typedef enum {
+    NotBound = 0xAE,
+    DSM2_1024_22ms = 0x01,
+    DSM2_1024_MC24 = 0x02,
+    DMS2_2048_11ms = 0x12,
+    DMSX_22ms = 0xA2,
+    DMSX_11ms = 0xB2,
+    Surface_DSM2_16_5ms = 0x63,
+    DSMR_11ms_22ms = 0xE2,
+    DSMR_5_5ms = 0xE4,
+} srxlv2BindType;
+
+typedef struct {
+  uint8_t request;
+  uint8_t device_id;
+  uint8_t bind_type;
+  uint8_t options;
+  uint64_t guid;
+  uint32_t uid;
+} PACKED srxlv2BindInfoPayload;
+
+typedef struct {
+  srxlv2Header header;
+  srxlv2BindInfoPayload payload;
+  uint8_t crc_high;
+  uint8_t crc_low;
+} PACKED srxlv2BindInfoFrame;
+
 #undef PACKED

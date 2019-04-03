@@ -140,6 +140,7 @@ extern uint8_t __config_end;
 #include "rx/spektrum.h"
 #include "rx/cc2500_frsky_common.h"
 #include "rx/cc2500_frsky_x.h"
+#include "rx/srxlv2.h"
 
 #include "scheduler/scheduler.h"
 
@@ -2566,7 +2567,7 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
     if (defaultRxConfig) {
         bufDefault[i] = '\0';
         cliDefaultPrintLinef(dumpMask, equalsDefault, formatMap, bufDefault);
-    }   
+    }
     cliDumpPrintLinef(dumpMask, equalsDefault, formatMap, buf);
 }
 
@@ -3385,7 +3386,7 @@ STATIC_UNIT_TESTED void cliSet(char *cmdline)
                     }
 
                     break;
-                case MODE_LOOKUP: 
+                case MODE_LOOKUP:
                 case MODE_BITSET: {
                         int tableIndex;
                         if ((val->type & VALUE_MODE_MASK) == MODE_BITSET) {
@@ -4059,7 +4060,7 @@ static void printTimer(uint8_t dumpMask)
 
     cliPrint("#");
     cliPrintLinef(format, 'A', 1, 0);
-    
+
     for (unsigned int i = 0; i < MAX_TIMER_PINMAP_COUNT; i++) {
 
         const ioTag_t ioTag = timerIOConfig(i)->ioTag;
@@ -4070,8 +4071,8 @@ static void printTimer(uint8_t dumpMask)
         }
 
         if (timerIndex != 0 && !(dumpMask & HIDE_UNUSED)) {
-            cliDumpPrintLinef(dumpMask, false, format, 
-                IO_GPIOPortIdxByTag(ioTag) + 'A', 
+            cliDumpPrintLinef(dumpMask, false, format,
+                IO_GPIOPortIdxByTag(ioTag) + 'A',
                 IO_GPIOPinIdxByTag(ioTag),
                 timerIndex
                 );
@@ -4090,13 +4091,13 @@ static void cliTimer(char *cmdline)
         printTimer(DUMP_MASTER);
         return;
     }
-    
+
     char *pch = NULL;
     char *saveptr;
     int timerIOIndex = -1;
-    
+
     ioTag_t ioTag = 0;
-    pch = strtok_r(cmdline, " ", &saveptr);    
+    pch = strtok_r(cmdline, " ", &saveptr);
     if (!pch || !(strToPin(pch, &ioTag) && IOGetByTag(ioTag))) {
         goto error;
     }
@@ -4143,7 +4144,7 @@ static void cliTimer(char *cmdline)
         }
     } else {
         goto error;
-    }  
+    }
 
 success:
     timerIOConfigMutable(timerIOIndex)->ioTag = timerIndex == 0 ? IO_TAG_NONE : ioTag;
@@ -4151,7 +4152,7 @@ success:
 
     cliPrintLine("Success");
     return;
-    
+
 error:
     cliShowParseError();
 }
@@ -4176,7 +4177,7 @@ static void printConfig(char *cmdline, bool doDiff)
     if (doDiff) {
         dumpMask = dumpMask | DO_DIFF;
     }
-    
+
     backupAndResetConfigs();
     if (checkCommand(options, "defaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -4357,6 +4358,25 @@ static void cliMsc(char *cmdline)
 }
 #endif
 
+#if defined(USE_SERIALRX_SRXLv2)
+void cliSrxlv2Bind(char *cmdline)
+{
+  if (!srxlv2RxIsActive()) {
+    cliPrintLine("SRXLv2 not configured");
+    return;
+  }
+
+  char *options;
+  if ((options = checkCommand(cmdline, "info"))) {
+    cliPrintLine("RequestBindStatus not implemented");
+  } else {
+    cliPrintLine("Sending EnterBindMode request");
+    srxlv2Bind();
+  }
+}
+#endif
+
+
 typedef struct {
     const char *name;
 #ifndef MINIMAL_CLI
@@ -4492,6 +4512,9 @@ const clicmd_t cmdTable[] = {
         "\treset\r\n"
         "\tload <mixer>\r\n"
         "\treverse <servo> <source> r|n", cliServoMix),
+#endif
+#if defined (USE_SERIALRX_SRXLv2)
+    CLI_COMMAND_DEF("srxlv2_bind", "SRXLv2 bind", "[enter|info]", cliSrxlv2Bind),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
 #ifndef SKIP_TASK_STATISTICS

@@ -15,3 +15,4 @@ void srxlv2RxWriteData(const void *data, int len);
 bool srxlv2TelemetryRequested(void);
 void srxlv2InitializeFrame(struct sbuf_s *dst);
 void srxlv2FinalizeFrame(struct sbuf_s *dst);
+void srxlv2Bind(void);
