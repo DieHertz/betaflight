@@ -247,11 +247,21 @@ void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     if (anonymous.header.id != SRXLv2_ID) {
+      read_buffer_read_idx = read_buffer_idx;
       global_result = RX_FRAME_DROPPED;
       return;
     }
 
-    while (bytes_copied < anonymous.header.length) {
+    //    cliPrintf("> %d %d %x\r\n", read_buffer_idx, read_buffer_read_idx, anonymous.header.id);
+
+    const uint8_t bytes_to_read = anonymous.header.length;
+    if (bytes_to_read > sizeof(anonymous)) {
+      read_buffer_read_idx = read_buffer_idx;
+      global_result = RX_FRAME_DROPPED;
+      return;
+    }
+
+    while (bytes_copied < bytes_to_read) {
         anonymous.local_buffer[bytes_copied++] = read_buffer[read_buffer_read_idx++];
 
         if (read_buffer_read_idx == sizeof(read_buffer)) {
@@ -259,17 +269,24 @@ void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
         }
     }
 
-    if (anonymous.header.id != SRXLv2_ID) {
+    //    cliPrintf("- %d %d %x\r\n", read_buffer_idx, read_buffer_read_idx, anonymous.header.id);
+
+    if (anonymous.header.id != SRXLv2_ID ||
+        bytes_copied != anonymous.header.length) {
+      read_buffer_read_idx = read_buffer_idx;
       global_result = RX_FRAME_DROPPED;
       return;
     }
 
     const uint16_t calculated_crc = crc16_ccitt_update(0, anonymous.local_buffer, anonymous.header.length - 2);
+    //    cliPrintf("< %d %d %x %x\r\n", read_buffer_idx, read_buffer_read_idx, anonymous.header.id, calculated_crc);
+
     const uint16_t received_crc =
         (anonymous.local_buffer[anonymous.header.length - 2] << 8) |
         (anonymous.local_buffer[anonymous.header.length - 1]);
 
     if (calculated_crc != received_crc) {
+        read_buffer_read_idx = read_buffer_idx;
         global_result = RX_FRAME_DROPPED;
         //        DEBUG("crc mismatch %x vs %x\r\n", calculated_crc, received_crc);
         return;
@@ -358,6 +375,8 @@ static uint8_t srxlv2FrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         if (bytes_available < anonymous.header.length) {
             return RX_FRAME_PENDING;
         }
+
+        //        cliPrintf("id %x %x %x\r\n", anonymous.header.id, anonymous.header.packet_type, anonymous.header.length);
 
         srxlv2Process(rxRuntimeConfig);
     }
