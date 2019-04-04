@@ -57,6 +57,9 @@ typedef struct rxConfig_s {
     uint8_t rc_smoothing_input_type;        // Input filter type (0 = PT1, 1 = BIQUAD)
     uint8_t rc_smoothing_derivative_type;   // Derivative filter type (0 = OFF, 1 = PT1, 2 = BIQUAD)
     uint8_t rc_smoothing_auto_factor;       // Used to adjust the "smoothness" determined by the auto cutoff calculations
+
+    uint8_t srxlv2_unit_id;
+    uint8_t srxlv2_baud_rate;
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);

@@ -133,6 +133,10 @@ typedef enum {
     TABLE_LEDSTRIP_COLOR,
 #endif
     TABLE_GYRO_FILTER_DEBUG,
+#ifdef USE_SERIALRX_SRXLv2
+    TABLE_SRXLv2_BAUD_RATES,
+#endif
+    TABLE_HALF_DUPLEX,
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 

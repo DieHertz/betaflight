@@ -39,7 +39,7 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
 {
     RESET_CONFIG_2(rxConfig_t, rxConfig,
         .halfDuplex = 0,
-        .serialrx_provider = SERIALRX_PROVIDER,
+        .serialrx_provider = SERIALRX_SRXLv2,
         .serialrx_inverted = 0,
         .spektrum_bind_pin_override_ioTag = IO_TAG(SPEKTRUM_BIND_PIN),
         .spektrum_bind_plug_ioTag = IO_TAG(BINDPLUG_PIN),
@@ -68,6 +68,8 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
         .rc_smoothing_input_type = RC_SMOOTHING_INPUT_BIQUAD,
         .rc_smoothing_derivative_type = RC_SMOOTHING_DERIVATIVE_BIQUAD,
         .rc_smoothing_auto_factor = 10,
+        .srxlv2_unit_id = 0,
+        .srxlv2_baud_rate = 0,
     );
 
 #ifdef RX_CHANNELS_TAER
