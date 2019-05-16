@@ -12,6 +12,7 @@
 
 #include "rx/srxlv2.h"
 #include "rx/srxlv2_types.h"
+#include "io/spektrum_vtx_control.h"
 
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
@@ -205,7 +206,25 @@ bool srxlv2ProcessControlData(const srxlv2ControlDataSubHeader* control_data, rx
         } break;
 
         case VTXData: {
-            // DEBUG("vtx data\r\n");
+            //DEBUG("vtx data\r\n");
+            srxlv2VtxData *vtxData = (srxlv2VtxData*)(control_data + 1);
+            //DEBUG("vtx band: %x\r\n", vtxData->band);
+            //DEBUG("vtx channel: %x\r\n", vtxData->channel);
+            //DEBUG("vtx pit: %x\r\n", vtxData->pit);
+            //DEBUG("vtx power: %x\r\n", vtxData->power);
+            //DEBUG("vtx powerDec: %x\r\n", vtxData->powerDec);
+            //DEBUG("vtx region: %x\r\n", vtxData->region);
+            // Pack data as it was used before srxlv2 to use existing functions.
+            // Get the VTX control bytes in a frame
+            uint32_t vtxControl =   (0xE0 << 24) | (0xE0 << 8) |
+                                    ((vtxData->band & 0x07) << 21) |
+                                    ((vtxData->channel & 0x0F) << 16) |
+                                    ((vtxData->pit & 0x01) << 4) |
+                                    ((vtxData->region & 0x01) << 3) |
+                                    ((vtxData->power & 0x07));
+            #if defined(USE_SPEKTRUM_VTX_CONTROL) && defined(USE_VTX_COMMON)
+            spektrumHandleVtxControl(vtxControl);
+            #endif
         } break;
     }
 
@@ -657,6 +676,8 @@ void srxlv2Bind(void)
         .payload = {
             .request = EnterBindMode,
             .device_id = bus_master_device_id,
+            .bind_type = DMSX_11ms,
+            .options = SRXL_BIND_OPT_TELEM_TX_ENABLE | SRXL_BIND_OPT_BIND_TX_ENABLE,
         }
     };
 
