@@ -92,7 +92,7 @@ typedef enum {
 } srxlv2BindRequest;
 
 typedef enum {
-    NotBound = 0xAE,
+    NotBound = 0x0,
     DSM2_1024_22ms = 0x01,
     DSM2_1024_MC24 = 0x02,
     DMS2_2048_11ms = 0x12,
@@ -102,6 +102,11 @@ typedef enum {
     DSMR_11ms_22ms = 0xE2,
     DSMR_5_5ms = 0xE4,
 } srxlv2BindType;
+
+// Bit masks for Options byte
+#define SRXL_BIND_OPT_NONE              (0x00)
+#define SRXL_BIND_OPT_TELEM_TX_ENABLE   (0x01)  // Set if this device should be enabled as the current telemetry device to tx over RF
+#define SRXL_BIND_OPT_BIND_TX_ENABLE    (0x02)  // Set if this device should reply to a bind request with a Discover packet over RF
 
 typedef struct {
   uint8_t request;
@@ -118,5 +123,16 @@ typedef struct {
   uint8_t crc_high;
   uint8_t crc_low;
 } PACKED srxlv2BindInfoFrame;
+
+// VTX Data
+typedef struct
+{
+  uint8_t   band;     // VTX Band (0 = Fatshark, 1 = Raceband, 2 = E, 3 = B, 4 = A)
+  uint8_t   channel;  // VTX Channel (0-7)
+  uint8_t   pit;      // Pit/Race mode (0 = Race, 1 = Pit). Race = (normal operating) mode. Pit = (reduced power) mode.
+  uint8_t   power;    // VTX Power (0 = Off, 1 = 1mw to 14mW, 2 = 15mW to 25mW, 3 = 26mW to 99mW, 4 = 100mW to 299mW, 5 = 300mW to 600mW, 6 = 601mW+, 7 = manual control)
+  uint16_t  powerDec; // VTX Power as a decimal 1mw/unit
+  uint8_t   region;   // Region (0 = USA, 1 = EU)
+} PACKED srxlv2VtxData;
 
 #undef PACKED

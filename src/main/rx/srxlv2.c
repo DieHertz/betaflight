@@ -12,6 +12,7 @@
 
 #include "rx/srxlv2.h"
 #include "rx/srxlv2_types.h"
+#include "io/spektrum_vtx_control.h"
 
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
@@ -61,6 +62,8 @@ static uint8_t baud_rate = 0;
 static srxlv2State state = Disabled;
 static volatile uint32_t timeout_timestamp = 0;
 static volatile uint32_t full_timeout_timestamp = 0;
+static volatile uint32_t last_receive_timestamp = 0;
+static volatile uint32_t last_valid_packet_timestamp = 0;
 
 static volatile uint8_t read_buffer[2 * SRXLv2_MAX_PACKET_LENGTH];
 static volatile uint8_t read_buffer_idx = 0;
@@ -76,7 +79,7 @@ static extiCallbackRec_t rec;
 
 static uint32_t min_duration = UINT32_MAX;
 
-static uint8_t bus_master_device_id = 0;
+static uint8_t bus_master_device_id = 0xFF;
 static bool telemetry_requested = false;
 
 static uint8_t telemetryFrame[22];
@@ -205,7 +208,25 @@ bool srxlv2ProcessControlData(const srxlv2ControlDataSubHeader* control_data, rx
         } break;
 
         case VTXData: {
-            // DEBUG("vtx data\r\n");
+            //DEBUG("vtx data\r\n");
+            srxlv2VtxData *vtxData = (srxlv2VtxData*)(control_data + 1);
+            //DEBUG("vtx band: %x\r\n", vtxData->band);
+            //DEBUG("vtx channel: %x\r\n", vtxData->channel);
+            //DEBUG("vtx pit: %x\r\n", vtxData->pit);
+            //DEBUG("vtx power: %x\r\n", vtxData->power);
+            //DEBUG("vtx powerDec: %x\r\n", vtxData->powerDec);
+            //DEBUG("vtx region: %x\r\n", vtxData->region);
+            // Pack data as it was used before srxlv2 to use existing functions.
+            // Get the VTX control bytes in a frame
+            uint32_t vtxControl =   (0xE0 << 24) | (0xE0 << 8) |
+                                    ((vtxData->band & 0x07) << 21) |
+                                    ((vtxData->channel & 0x0F) << 16) |
+                                    ((vtxData->pit & 0x01) << 4) |
+                                    ((vtxData->region & 0x01) << 3) |
+                                    ((vtxData->power & 0x07));
+            #if defined(USE_SPEKTRUM_VTX_CONTROL) && defined(USE_VTX_COMMON)
+            spektrumHandleVtxControl(vtxControl);
+            #endif
         } break;
     }
 
@@ -287,6 +308,9 @@ void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
         return;
     }
 
+    //Packet is valid only after ID and CRC check out
+    last_valid_packet_timestamp = micros();
+
     if (srxlv2ProcessPacket(&anonymous.header, rxRuntimeConfig)) {
         return;
     }
@@ -296,7 +320,7 @@ void srxlv2Process(rxRuntimeConfig_t *rxRuntimeConfig)
     global_result = RX_FRAME_DROPPED;
 }
 
-uint32_t last_receive_timestamp = 0;
+
 static void srxlv2DataReceive(uint16_t character, void *data)
 {
     UNUSED(data);
@@ -388,18 +412,27 @@ static uint8_t srxlv2FrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     case ListenForActivity: {
         // activity detected
-        if (last_receive_timestamp != 0) {
+        if (last_valid_packet_timestamp != 0) {
             // as ListenForActivity is done at default baud-rate, we don't need to change anything
             // @todo if there were non-handshake packets - go to running,
             // if there were - go to either Send Handshake or Listen For Handshake
             state = Running;
+        } else if (last_idle_timestamp > last_receive_timestamp) {
+            if (baud_rate != 0) {
+                uint32_t currentBaud = serialGetBaudRate(serialPort);
+
+                if(currentBaud == SRXLv2_PORT_BAUDRATE_DEFAULT)
+                    serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_HIGH);
+                else
+                    serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_DEFAULT);
+            }
         } else if (now >= timeout_timestamp) {
             // @todo if there was activity - detect baudrate and ListenForHandshake
-            /*
-                if (baud_rate == 1) {
-                    serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_HIGH);
-                }
-            */
+
+            //if (baud_rate == 1) {
+            //    serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_HIGH);
+            //}
+
             // else
             if (unit_id == 0) {
                 state = SendHandshake;
@@ -452,14 +485,15 @@ static uint8_t srxlv2FrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     case Running: {
         // frame timed out, reset state
-        if (last_receive_timestamp < now && now - last_receive_timestamp >= SRXLv2_FRAME_TIMEOUT_US) {
+        if (last_valid_packet_timestamp < now && now - last_valid_packet_timestamp >= SRXLv2_FRAME_TIMEOUT_US) {
             serialPort->vTable->serialSetBaudRate(serialPort, SRXLv2_PORT_BAUDRATE_DEFAULT);
-            //DEBUG("case Running: switching to %d baud: %d %d\r\n", SRXLv2_PORT_BAUDRATE_DEFAULT, now, last_receive_timestamp);
+            //DEBUG("case Running: switching to %d baud: %d %d\r\n", SRXLv2_PORT_BAUDRATE_DEFAULT, now, last_valid_packet_timestamp);
             timeout_timestamp = now + SRXLv2_LISTEN_FOR_ACTIVITY_TIMEOUT;
             result = (result & ~RX_FRAME_PENDING) | RX_FRAME_FAILSAFE;
 
             state = ListenForActivity;
             last_receive_timestamp = 0;
+            last_valid_packet_timestamp = 0;
         }
     } break;
     };
@@ -657,6 +691,8 @@ void srxlv2Bind(void)
         .payload = {
             .request = EnterBindMode,
             .device_id = bus_master_device_id,
+            .bind_type = DMSX_11ms,
+            .options = SRXL_BIND_OPT_TELEM_TX_ENABLE | SRXL_BIND_OPT_BIND_TX_ENABLE,
         }
     };
 
