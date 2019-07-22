@@ -28,15 +28,15 @@
 #include "drivers/timer_def.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_CAMERA_CONTROL,      0, 0), // CAMERA_CONTROL_PIN
+    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_CAMERA_CONTROL,      0, 0), // CAMERA_CONTROL_PIN
 
-    DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_MOTOR,               0, 0), // M1
-    DEF_TIM(TIM4,  CH2,  PB7,  TIM_USE_MOTOR,               0, 0), // M2
-    DEF_TIM(TIM4,  CH3,  PB8,  TIM_USE_MOTOR,               0, 0), // M3
-    DEF_TIM(TIM4,  CH4,  PB9,  TIM_USE_MOTOR,               0, 0), // M4
+    DEF_TIM(TIM8,  CH1,  PC6,  TIM_USE_MOTOR,               0, 0), // M1
+    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_MOTOR,               0, 0), // M2
+    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MOTOR,               0, 0), // M3
+    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MOTOR,               0, 0), // M4
 
-    DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_MOTOR,               0, 0), // M5
-    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_MOTOR,               0, 0), // M6
+    DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_MOTOR,               0, 0), // M5
+    DEF_TIM(TIM4,  CH3,  PB8,  TIM_USE_MOTOR,               0, 0), // M6
 
     // backdoor timers
     DEF_TIM(TIM9,  CH1,  PA2,  TIM_USE_ANY,                 0, 0), // UART2_TX

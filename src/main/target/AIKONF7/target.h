@@ -25,7 +25,7 @@
 
 #define LED0_PIN                PC13
 #define USE_BEEPER
-#define BEEPER_PIN              PC8
+#define BEEPER_PIN              PB0
 #define BEEPER_INVERTED
 
 #define ENABLE_DSHOT_DMAR       true
@@ -50,7 +50,7 @@
 
 #define USE_BARO
 #define USE_BARO_SPI_BMP280
-#define BARO_CS_PIN             PC0
+#define BARO_CS_PIN             PC15
 #define BARO_SPI_INSTANCE       SPI3
 
 #define USE_MAX7456
@@ -66,9 +66,6 @@
 #define FLASH_SPI_INSTANCE      SPI3
 
 #define USE_VCP
-#define USE_USB_DETECT
-#define USB_DETECT_PIN          PC15
-#define VBUS_SENSING_PIN        PC14
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -90,11 +87,7 @@
 #define UART5_RX_PIN            PD2
 #define UART5_TX_PIN            PC12
 
-#define USE_UART6
-#define UART6_RX_PIN            PC6
-#define UART6_TX_PIN            PC7
-
-#define SERIAL_PORT_COUNT       7
+#define SERIAL_PORT_COUNT       6
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_PIN  PA8
